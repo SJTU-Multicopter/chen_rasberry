@@ -9,7 +9,7 @@
 #include "Eigen/Dense"
 #include "std_msgs/String.h"   //new
 #include "std_msgs/Float32.h"
-#define Pi 3.1415926
+#define Pi 3.141592653
 #define LOOP_RATE_PLAN 10
 using namespace Eigen;
 
@@ -806,7 +806,7 @@ void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &
 	if(msg.laser_height_enable == 1) laser_fly_height_enable = true;
 	else laser_fly_height_enable = false;
 
-    if(msg.add_two > 0 && msg.add_two < 10 && !ploylines_flying) MAX_v = msg.add_two;
+    	if(msg.add_two > 0 && msg.add_two < 10 && !ploylines_flying){ MAX_v = msg.add_two;} //ROS_INFO("max speed = %f", MAX_v);}
 }
 
 //Subscribe obstacle msg by CJ
