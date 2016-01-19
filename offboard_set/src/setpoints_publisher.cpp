@@ -14,7 +14,7 @@
 #include <iostream>
 
 #define LOOP_RATE 20
-#define Pi 3.14159265
+#define Pi 3.1415926
 
 using Eigen::MatrixXd;
 
@@ -112,13 +112,20 @@ int main(int argc, char **argv)
     ROS_INFO("Field Size Received!");
     //wait for offboard mode
     
-    while(ros::ok()){
+   
+   while(ros::ok()){
+   while(ros::ok()&&offboard_ready)
+   {
+        ros::spinOnce();
+        wait_rate.sleep();
+   }
     while(ros::ok())
     {
     	if(p_received && v_received && a_received)
     	{
     		if(offboard_ready) break;
-    		set_new_point(St_matrix(0,0),St_matrix(1,0),St_matrix(2,0),yaw, 0.0);             
+    		set_new_point(St_matrix(0,0),St_matrix(1,0),St_matrix(2,0),yaw, 0.0);
+                ROS_INFO("Waiting for OFFBOARD!");             
     	}
         confirm_counter+=1;
         field_size_confirm_msg.length = field_size_matrix(0,0);
@@ -189,7 +196,7 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
 
 	ready_for_next = false;
 
-	while(ros::ok()&&offboard_ready){
+	while(ros::ok()){
         setpoint.z += lidar_distance_delt;
     	setpoints_pub.publish(setpoint);
         ROS_INFO("%f %f %f %f", setpoint.x,setpoint.y,setpoint.z,setpoint.yaw);
@@ -281,8 +288,7 @@ void chatterCallback_rplidar(const std_msgs::Float32 &msg)
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 {
 	//judge if close to set ready
-	if(near_bool(setpoint.x, msg.pose.position.x)&&near_bool(setpoint.y, msg.pose.position.y)&&
-		near_bool(setpoint.z, msg.pose.position.z))
+	if(near_bool(setpoint.x, msg.pose.position.x)&&near_bool(setpoint.y, msg.pose.position.y))
 		close_counter += 1;
 	else {
 		close_counter = 0;
@@ -368,7 +374,7 @@ void trajectory_Paras_generation_i(int num, float p0, float v0, float a0, float 
 
 bool near_bool(float x, float y)
 {
-	if(x-y<0.6 && x-y>-0.6)
+	if(x-y<1.0 && x-y>-1.0)
 		return true;
 	else return false;
 }
