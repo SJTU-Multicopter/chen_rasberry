@@ -15,6 +15,9 @@
 
 #define LOOP_RATE 20
 #define Pi 3.1415926
+#define DELT_LIMIT_P 0.2 //need to test
+#define DELT_LIMIT_N -0.02 //need to test
+bool disable_fly_back = true;
 
 using Eigen::MatrixXd;
 
@@ -183,8 +186,6 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
 {
 	setpoint.x = x;
 	setpoint.y = y;
-	setpoint.z = z;
-       //setpoint.z = 5;
 	setpoint.yaw = 2*Pi-yaw;
     
         ros::NodeHandle n;
@@ -197,7 +198,16 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
 	ready_for_next = false;
 
 	while(ros::ok()){
-        setpoint.z += lidar_distance_delt;
+        
+        if(offboard_ready) 
+        {
+             float delt = z - lidar_distance; //lidar_distance has been set to positive
+             if(delt > DELT_LIMIT_P) setpoint.z = setpoint.z + DELT_LIMIT_P;
+             else if(delt < DELT_LIMIT_N) setpoint.z = setpoint.z + DELT_LIMIT_N;
+             else setpoint.z = setpoint.z + delt;
+        }
+        else setpoint.z = z;
+
     	setpoints_pub.publish(setpoint);
         ROS_INFO("%f %f %f %f", setpoint.x,setpoint.y,setpoint.z,setpoint.yaw);
         
@@ -209,6 +219,7 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
     	if(ready_for_next) rest_counter+=1;
 
         if(rest_counter > max) break;
+        if(disable_fly_back && (!offboard_ready)) break; 
 
     	ros::spinOnce();  
     	loop_rate.sleep();
@@ -280,8 +291,9 @@ void trajectory_generation(float T,float pxf, float pyf, float pzf,float vxf=0.0
 }
 void chatterCallback_rplidar(const std_msgs::Float32 &msg)
 {
-        if(lidar_distance_last != 255.0) lidar_distance_delt = msg.data - lidar_distance_last;//delt is positive, while last is negative
-        lidar_distance_last = msg.data;
+        //if(lidar_distance_last != 255.0) lidar_distance_delt = msg.data - lidar_distance_last;//delt is positive, while last is negative
+        //lidar_distance_last = msg.data;
+        lidar_distance = 0.0-mag.data;
        // ROS_INFO("Lidar %f",msg.data);
 }
 
