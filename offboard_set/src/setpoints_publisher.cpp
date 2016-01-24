@@ -15,7 +15,7 @@
 
 #define LOOP_RATE 20
 #define Pi 3.1415926
-#define DELT_LIMIT_P 0.2 //need to test
+#define DELT_LIMIT_P 0.1 //need to test
 #define DELT_LIMIT_N -0.02 //need to test
 bool disable_fly_back = true;
 
@@ -206,7 +206,8 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
         
         if(offboard_ready) 
         {
-             if(lidar_distance<0.2) lidar_distance = z;
+             if(setpoint.z < 0.2) setpoint.z = z;
+             if(lidar_distance < 0.2) lidar_distance = z;
              delt = z - lidar_distance; //lidar_distance has been set to positive
              if(delt > DELT_LIMIT_P) delt = DELT_LIMIT_P;
              if(delt < DELT_LIMIT_N) delt = DELT_LIMIT_N;
@@ -217,10 +218,11 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
                  setpoint.y = St_matrix(1,0);
              }
              else {setpoint.x = x; setpoint.y = y;}
+             setpoint.z = setpoint.z + delt;
         }
-        else delt = 0.0;
+        else setpoint.z = z;
 
-        setpoint.z = setpoint.z + delt;
+        
 	if(setpoint.z>10) {setpoint.z = 10.0;}
 
     	setpoints_pub.publish(setpoint);
@@ -238,14 +240,14 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
 
         //check if lidar is running
         lidar_counter += 1;
-        if(lidar_counter > 4)
+        if(lidar_counter > 20)
         {
-             if(abs(lidar_distance_last - lidar_distance)<0.00001) lidar_running = false;
+             if(fabs(lidar_distance_last - lidar_distance)<0.00001) lidar_running = false;
              else lidar_running = true;
-             if(abs(lidar_distance-6.0)<0.01)
+             if(fabs(lidar_distance-6.0)<0.01)
 	     {lidar_running = true;}
-lidar_distance_last = lidar_distance;
-             lidar_counter = 0;
+              lidar_distance_last = lidar_distance;
+              lidar_counter = 0;
         }
 
     	ros::spinOnce();  
