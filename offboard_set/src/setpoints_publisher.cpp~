@@ -219,6 +219,7 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
         }
         else delt = 0.0;
 
+        
         setpoint.z = setpoint.z + delt;
 
     	setpoints_pub.publish(setpoint);
