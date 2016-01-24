@@ -67,7 +67,7 @@ MatrixXd field_size_matrix(1,4);//(length, width, height, times)
 double yaw = 0.0; //hudu
 double init_yaw = 0.0;
 float lidar_distance_last = 255.0;
-float lidar_distance_delt = 0.0;
+float lidar_distance_delt = 2.0;//positive
 
 int main(int argc, char **argv)  
 {
@@ -149,6 +149,7 @@ int main(int argc, char **argv)
     init_yaw = yaw;
     
     ROS_INFO("Initial Point Set, Auto Flying!");
+    lidar_distance = field_size_matrix(0,2);
     field_2_setpoint(field_size_matrix(0,0), field_size_matrix(0,1), field_size_matrix(0,2), (int)field_size_matrix(0,3), init_yaw);
 
     //trajectory_generation(5.0, init_p_matrix(0,0)+10.0, init_p_matrix(0,1)+0.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -201,6 +202,7 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
         
         if(offboard_ready) 
         {
+             if(lidar_distance<0.2) lidar_distance = z;
              float delt = z - lidar_distance; //lidar_distance has been set to positive
              if(delt > DELT_LIMIT_P) setpoint.z = setpoint.z + DELT_LIMIT_P;
              else if(delt < DELT_LIMIT_N) setpoint.z = setpoint.z + DELT_LIMIT_N;
