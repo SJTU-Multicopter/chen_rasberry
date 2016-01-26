@@ -27,8 +27,7 @@ int main(int argc, char **argv)
   while (ros::ok())  
   {  
     if(setpoints_ready){
-    //if(setpoints_ready){
-        ROS_INFO("%f %f %f", msg.pose.position.x,msg.pose.position.y,msg.pose.position.z);
+        //ROS_INFO("%f %f %f", msg.pose.position.x,msg.pose.position.y,msg.pose.position.z);
         offboard_pub.publish(msg);     
     }
     ros::spinOnce();  

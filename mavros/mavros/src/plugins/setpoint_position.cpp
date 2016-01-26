@@ -55,7 +55,7 @@ public:
 			tf2_start("PositionSpTF", &SetpointPositionPlugin::transform_cb);
 		}
 		else {
-			setpoint_sub = sp_nh.subscribe("/offboard/setpoints", 10, &SetpointPositionPlugin::setpoint_cb, this);
+			setpoint_sub = sp_nh.subscribe("/offboard/setpoints", 500, &SetpointPositionPlugin::setpoint_cb, this);
 		}
 	}
 
