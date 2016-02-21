@@ -1,0 +1,6 @@
+[submodule "crop_height"]
+	path = crop_height
+	url = git://github.com/owenqyzhang/crop_height.git
+[submodule "rplidar_ros"]
+	path = rplidar_ros
+	url = git://github.com/owenqyzhang/rplidar_ros.git
