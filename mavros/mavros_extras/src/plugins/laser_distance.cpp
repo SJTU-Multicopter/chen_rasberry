@@ -1,4 +1,4 @@
-#include <mavros/mavros_plugin.h>
+#include <mavros/mavros_plugin.h> 
 #include <pluginlib/class_list_macros.h>
 #include <mavros_extras/LaserDistance.h>
 #include "std_msgs/Float32.h" 
@@ -19,7 +19,7 @@ public:
         
     	laser_distance_nh.param<std::string>("frame_id", frame_id, "laser_distance");
         //subcribe the topic and excute the callback function
-    	laser_distance_sub = laser_distance_nh.subscribe("/chatter",500,&LaserDistancePlugin::laser_distance_send_cb,this);
+    	laser_distance_sub = laser_distance_nh.subscribe("/crop_dist",500,&LaserDistancePlugin::laser_distance_send_cb,this);
 
     }
     
@@ -54,7 +54,7 @@ private:
     
     //callbacks
     void laser_distance_send_cb(const std_msgs::Float32 &msg){
-        laser_distance_send(msg.data,4.0,3.0,0.1);
+        laser_distance_send(msg.data,0.0,0.0,0.0);
     }
 };
 

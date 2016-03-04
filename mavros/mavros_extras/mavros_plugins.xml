@@ -25,6 +25,9 @@
 		<description>Publish camera trigger data for synchronisation of IMU and camera frames</description>
 	</class>
 
+	<class name="laser_distance" type="mavplugin::LaserDistancePlugin" base_class_type="mavplugin::MavRosPlugin">
+		<description>Publish distance to the ground/crop with data aquired from RPLidar</description>
+	</class>
 
 	<class name="field_size_receiver" type="mavplugin::FieldSizeReceiverPlugin" base_class_type="mavplugin::MavRosPlugin">
 		<description>Writtren by Clarence Chan for field size</description>

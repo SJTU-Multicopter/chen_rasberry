@@ -16,7 +16,7 @@
 #define LOOP_RATE 20
 #define Pi 3.1415926
 #define DELT_LIMIT_P 0.1 //need to test
-#define DELT_LIMIT_N -0.02 //need to test
+#define DELT_LIMIT_N -0.1 //need to test
 bool disable_fly_back = true;
 
 using Eigen::MatrixXd;
