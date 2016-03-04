@@ -18,6 +18,7 @@
 #define DELT_LIMIT_P 0.1 //need to test
 #define DELT_LIMIT_N -0.02 //need to test
 bool disable_fly_back = true;
+bool first_point = true;
 
 using Eigen::MatrixXd;
 
@@ -153,6 +154,7 @@ int main(int argc, char **argv)
     
     ROS_INFO("Initial Point Set, Auto Flying!");
     lidar_distance = field_size_matrix(0,2);
+    first_point = true;
     field_2_setpoint(field_size_matrix(0,0), field_size_matrix(0,1), field_size_matrix(0,2), (int)field_size_matrix(0,3), init_yaw);
 
     //trajectory_generation(5.0, init_p_matrix(0,0)+10.0, init_p_matrix(0,1)+0.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -202,9 +204,17 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
 	ready_for_next = false;
         float delt = 0.0;
         
-	while(ros::ok()){
-        
-        if(offboard_ready) 
+      while(ros::ok()){
+       
+        if(offboard_ready && first_point)
+        {
+             setpoint.x = St_matrix(0,0);
+             setpoint.y = St_matrix(1,0);
+             setpoint.z = z;
+             if(fabs(St_matrix(2,0) - z) < 0.2) first_point = false;
+        }
+
+        else if(offboard_ready && !first_point) 
         {
              if(setpoint.z < 0.2) setpoint.z = z;
              if(lidar_distance < 0.2) lidar_distance = z;
@@ -225,8 +235,8 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
         
 	if(setpoint.z>10) {setpoint.z = 10.0;}
 
-    	setpoints_pub.publish(setpoint);
-        ROS_INFO("%f %f %f %f", setpoint.x,setpoint.y,setpoint.z,setpoint.yaw);
+        setpoints_pub.publish(setpoint);
+        //ROS_INFO("%f %f %f %f", setpoint.x,setpoint.y,setpoint.z,setpoint.yaw);
         
         //if(confirm_counter!=10000)confirm_counter+=1;
         //else confirm_counter=10000;
