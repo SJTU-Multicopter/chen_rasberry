@@ -26,7 +26,10 @@ target_link_libraries(receive_setpoints ${catkin_LIBRARIES})
 
 
 add_executable(process_setpoints src/process_setpoints.cpp)  
-target_link_libraries(process_setpoints ${catkin_LIBRARIES})   
+target_link_libraries(process_setpoints ${catkin_LIBRARIES})
+
+add_executable(publish_setpoints src/publish_setpoints.cpp)  
+target_link_libraries(publish_setpoints ${catkin_LIBRARIES})   
 
 #add_executable(setpoints_publisher src/setpoints_publisher.cpp)  
 #target_link_libraries(setpoints_publisher ${catkin_LIBRARIES})  

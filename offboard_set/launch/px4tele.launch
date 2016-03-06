@@ -20,4 +20,8 @@
 	</include>
         <node name="receive_setpoints" pkg="offboard_set" type="receive_setpoints" output="screen">
         </node>
+        <node name="process_setpoints" pkg="offboard_set" type="process_setpoints" output="screen">
+        </node>
+        <node name="publish_setpoints" pkg="offboard_set" type="publish_setpoints" output="screen">
+        </node>
 </launch>
