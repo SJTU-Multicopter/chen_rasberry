@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 
   ros::NodeHandle nh;  
   
-  ros::Publisher routepoint_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/setpoint_raw", 2); 
+  ros::Publisher routepoint_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/setpoints_raw", 2); 
   ros::Publisher routepointconfirm_pub = nh.advertise<mavros_extras::OffboardRoutePointsConfirm>("offboard_route_points_confirm", 2); 
 
   ros::Subscriber setpoint_sub = nh.subscribe("/mavros/offboard_route_points_receiver/offboard_route_points_receiver", 5, chatterCallback_route_points);
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     	//set start px, py to correct setpoint, especially when the UAV get route points from GS while flying
     	start_px = current_px;
     	start_py = current_py;
-      stop_setpoint.ph = -2.0;
+        stop_setpoint.ph = -2.0;
     	routepoint_pub.publish(stop_setpoint); //ph = -2.0, stop sending setpoint, reject offboard
     }
     //send new route point
