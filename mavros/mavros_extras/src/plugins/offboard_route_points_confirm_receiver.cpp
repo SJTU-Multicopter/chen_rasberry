@@ -5,11 +5,11 @@
 
 //Don't forget to add codes in mavros_plugins.xml
 namespace mavplugin {
-class OffboardRoutePointsReceiverConfirmPlugin : public MavRosPlugin{
+class OffboardRoutePointsConfirmReceiverPlugin : public MavRosPlugin{
 
 public:
-        OffboardRoutePointsReceiverConfirmPlugin():
-                offboard_route_points_receiver_confirm_nh("~offboard_route_points_receiver_confirm"),
+        OffboardRoutePointsConfirmReceiverPlugin():
+                offboard_route_points_confirm_receiver_nh("~offboard_route_points_confirm_receiver"),
                 uas(nullptr)
                 
         { };
@@ -19,19 +19,19 @@ public:
 		uas = &uas_;
 
 		// general params
-		offboard_route_points_receiver_confirm_nh.param<std::string>("frame_id", frame_id, "offboard_route_points_receiver_confirm");
-                    offboard_route_points_receiver_confirm_pub = offboard_route_points_receiver_confirm_nh.advertise<mavros_extras::OffboardRoutePointsConfirm>("offboard_route_points_receiver_confirm", 5); //add publisher to handler
+		offboard_route_points_confirm_receiver_nh.param<std::string>("frame_id", frame_id, "offboard_route_points_confirm_receiver");
+                    offboard_route_points_confirm_receiver_pub = offboard_route_points_confirm_receiver_nh.advertise<mavros_extras::OffboardRoutePointsConfirm>("offboard_route_points_confirm_receiver", 5); //add publisher to handler
 	}
 
 	const message_map get_rx_handlers() {
 		return {
-			      MESSAGE_HANDLER(MAVLINK_MSG_ID_OFFBOARD_SETPOINT_CONFIRM, &OffboardRoutePointsReceiverConfirmPlugin::handle_offboard_route_points)
+			      MESSAGE_HANDLER(MAVLINK_MSG_ID_OFFBOARD_SETPOINT_CONFIRM, &OffboardRoutePointsConfirmReceiverPlugin::handle_offboard_route_points)
 		};
 	}
 
 private:
-        ros::NodeHandle offboard_route_points_receiver_confirm_nh;
-        ros::Publisher offboard_route_points_receiver_confirm_pub;
+        ros::NodeHandle offboard_route_points_confirm_receiver_nh;
+        ros::Publisher offboard_route_points_confirm_receiver_pub;
         UAS *uas; 
         std::string frame_id;
         
@@ -53,11 +53,11 @@ private:
                 setpoint_mav_msg->seq = setpoint_msg.seq;
                 setpoint_mav_msg->total = setpoint_msg.total;
                 
-                offboard_route_points_receiver_confirm_pub.publish(setpoint_mav_msg); //publish msg
+                offboard_route_points_confirm_receiver_pub.publish(setpoint_mav_msg); //publish msg
 
                }
        
             
 };
 };
-PLUGINLIB_EXPORT_CLASS(mavplugin::OffboardRoutePointsReceiverConfirmPlugin, mavplugin::MavRosPlugin)
+PLUGINLIB_EXPORT_CLASS(mavplugin::OffboardRoutePointsConfirmReceiverPlugin, mavplugin::MavRosPlugin)
