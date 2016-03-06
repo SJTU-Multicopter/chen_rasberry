@@ -20,7 +20,7 @@ public:
 
 		// general params
 		laser_receiver_nh.param<std::string>("frame_id", frame_id, "laser_receiver");
-        laser_receiver_pub = laser_receiver_nh.advertise<mavros_extras::LaserDistance>("laser_receiver", 1000); //add publisher to handler
+        laser_receiver_pub = laser_receiver_nh.advertise<mavros_extras::LaserDistance>("laser_receiver", 5); //add publisher to handler
 	}
 
 	const message_map get_rx_handlers() {

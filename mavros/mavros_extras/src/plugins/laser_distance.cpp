@@ -19,7 +19,7 @@ public:
         
     	laser_distance_nh.param<std::string>("frame_id", frame_id, "laser_distance");
         //subcribe the topic and excute the callback function
-    	laser_distance_sub = laser_distance_nh.subscribe("/chatter",500,&LaserDistancePlugin::laser_distance_send_cb,this);
+    	laser_distance_sub = laser_distance_nh.subscribe("/chatter",5,&LaserDistancePlugin::laser_distance_send_cb,this);
 
     }
     

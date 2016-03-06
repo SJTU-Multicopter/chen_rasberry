@@ -20,7 +20,7 @@ public:
 
 		// general params
 		sonar_receiver_nh.param<std::string>("frame_id", frame_id, "sonar_receiver");
-        sonar_receiver_pub = sonar_receiver_nh.advertise<mavros_extras::SonarDistance>("sonar_receiver", 1000); //add publisher to handler
+        sonar_receiver_pub = sonar_receiver_nh.advertise<mavros_extras::SonarDistance>("sonar_receiver", 4); //add publisher to handler
 	}
 
 	const message_map get_rx_handlers() {
