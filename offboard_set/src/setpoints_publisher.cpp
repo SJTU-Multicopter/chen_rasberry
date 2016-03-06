@@ -91,13 +91,13 @@ int main(int argc, char **argv)
 
     ros::NodeHandle nh;  
    
-    ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 500,chatterCallback_local_position);
-    ros::Subscriber imu_sub = nh.subscribe("/mavros/imu/data", 500,chatterCallback_imu_data);
-    ros::Subscriber velocity_sub = nh.subscribe("/mavros/local_position/local_velocity", 1000,chatterCallback_local_velocity);
-    ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 100,chatterCallback_Mode);
-    ros::Subscriber field_sub = nh.subscribe("/mavros/field_size_receiver/field_size_receiver", 100,chatterCallback_field_size);
-    ros::Subscriber liadr_sub = nh.subscribe("/crop_dist",50,chatterCallback_rplidar);
-    ros::Publisher field_size_confirm_pub = nh.advertise<mavros_extras::FieldSizeConfirm>("field_size_confirm", 100);
+    ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 5,chatterCallback_local_position);
+    ros::Subscriber imu_sub = nh.subscribe("/mavros/imu/data", 5,chatterCallback_imu_data);
+    ros::Subscriber velocity_sub = nh.subscribe("/mavros/local_position/local_velocity", 5,chatterCallback_local_velocity);
+    ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 5,chatterCallback_Mode);
+    ros::Subscriber field_sub = nh.subscribe("/mavros/field_size_receiver/field_size_receiver", 5,chatterCallback_field_size);
+    ros::Subscriber liadr_sub = nh.subscribe("/crop_dist",5,chatterCallback_rplidar);
+    ros::Publisher field_size_confirm_pub = nh.advertise<mavros_extras::FieldSizeConfirm>("field_size_confirm", 5);
     //imitate data
     //ros::Subscriber localposition_sub = nh.subscribe("/offboard/position_imitate", 500,chatterCallback_local_position);
     //ros::Subscriber imu_sub = nh.subscribe("/offboard/acceleration_imitate", 500,chatterCallback_imu_data);
@@ -206,21 +206,21 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
         
       while(ros::ok()){
        
-        if(offboard_ready && first_point)
-        {
-             setpoint.x = St_matrix(0,0);
-             setpoint.y = St_matrix(1,0);
-             setpoint.z = z;
-             if(fabs(St_matrix(2,0) - z) < 0.2) first_point = false;
-        }
+//        if(offboard_ready && first_point)
+//        {
+//             setpoint.x = St_matrix(0,0);
+//             setpoint.y = St_matrix(1,0);
+//             setpoint.z = z;
+//             if(fabs(St_matrix(2,0) - z) < 0.2) first_point = false;
+//        }
 
-        else if(offboard_ready && !first_point) 
+        if(offboard_ready) 
         {
-             if(setpoint.z < 0.2) setpoint.z = z;
+//             if(setpoint.z < 0.2) setpoint.z = z;
              if(lidar_distance < 0.2) lidar_distance = z;
              delt = z - lidar_distance; //lidar_distance has been set to positive
-             if(delt > DELT_LIMIT_P) delt = DELT_LIMIT_P;
-             if(delt < DELT_LIMIT_N) delt = DELT_LIMIT_N;
+//             if(delt > DELT_LIMIT_P) delt = DELT_LIMIT_P;
+//             if(delt < DELT_LIMIT_N) delt = DELT_LIMIT_N;
              if(!lidar_running) 
              {
                  delt = 0.0;
@@ -228,7 +228,8 @@ void set_new_point(float x, float y, float z, float yaw, float t) //t is the tim
                  setpoint.y = St_matrix(1,0);
              }
              else {setpoint.x = x; setpoint.y = y;}
-             setpoint.z = setpoint.z + delt;
+//             setpoint.z = setpoint.z + delt;
+            setpoint.z = St_matrix(2,0) + delt;
         }
         else setpoint.z = z;
 

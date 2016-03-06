@@ -26,14 +26,14 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "status_imitate");  
 
     ros::NodeHandle nh;
-    ros::Subscriber p_sub = nh.subscribe("/offboard/setpoints_local", 500, imitate_p);
-    ros::Subscriber v_sub = nh.subscribe("/offboard/velocity_test", 500, imitate_v);
-    ros::Subscriber a_sub = nh.subscribe("/offboard/acceleration_test", 500, imitate_a);
+    ros::Subscriber p_sub = nh.subscribe("/offboard/setpoints_local", 5, imitate_p);
+    ros::Subscriber v_sub = nh.subscribe("/offboard/velocity_test", 5, imitate_v);
+    ros::Subscriber a_sub = nh.subscribe("/offboard/acceleration_test", 5, imitate_a);
 
-    ros::Publisher p_pub = nh.advertise<geometry_msgs::PoseStamped>("offboard/position_imitate", 500);
-    ros::Publisher v_pub = nh.advertise<geometry_msgs::Vector3>("offboard/velocity_imitate",500);
-    ros::Publisher a_pub = nh.advertise<sensor_msgs::Imu>("offboard/acceleration_imitate", 500);
-    ros::Publisher m_pub = nh.advertise<mavros::State>("offboard/mode_imitate", 500);
+    ros::Publisher p_pub = nh.advertise<geometry_msgs::PoseStamped>("offboard/position_imitate", 5);
+    ros::Publisher v_pub = nh.advertise<geometry_msgs::Vector3>("offboard/velocity_imitate",5);
+    ros::Publisher a_pub = nh.advertise<sensor_msgs::Imu>("offboard/acceleration_imitate", 5);
+    ros::Publisher m_pub = nh.advertise<mavros::State>("offboard/mode_imitate", 5);
 
     p.pose.position.x = 1;
     p.pose.position.y = 0;

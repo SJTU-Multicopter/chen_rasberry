@@ -23,8 +23,8 @@ int main(int argc, char **argv)
   size_msg.times = 6;
 
   ros::NodeHandle n;  
-  ros::Publisher field_size_pub = n.advertise<mavros_extras::FieldSize>("field_size_set", 500);  
-  ros::Subscriber confirm_sub = n.subscribe("/mavros/field_size_confirm_receiver/field_size_confirm_receiver", 200,chatterCallback_Field_Size_Confirm);
+  ros::Publisher field_size_pub = n.advertise<mavros_extras::FieldSize>("field_size_set", 5);  
+  ros::Subscriber confirm_sub = n.subscribe("/mavros/field_size_confirm_receiver/field_size_confirm_receiver", 5,chatterCallback_Field_Size_Confirm);
 
   ros::Rate loop_rate(1);  
   

@@ -20,8 +20,8 @@ int main(int argc, char **argv)
 
   init_position();
   
-  ros::Publisher offboard_pub = nh2.advertise<geometry_msgs::PoseStamped>("offboard/setpoints", 1000);  
-  ros::Subscriber setpoint_sub = nh2.subscribe("/offboard/setpoints_local", 500, set_position);
+  ros::Publisher offboard_pub = nh2.advertise<geometry_msgs::PoseStamped>("offboard/setpoints", 5);  
+  ros::Subscriber setpoint_sub = nh2.subscribe("/offboard/setpoints_local", 5, set_position);
 
   ros::Rate loop_rate(16);
   while (ros::ok())  

@@ -19,7 +19,7 @@ public:
         
     	sonar_distance_nh.param<std::string>("frame_id", frame_id, "sonar_distance");
         //subcribe the topic and excute the callback function
-    	sonar_distance_sub = sonar_distance_nh.subscribe("/chatter",500,&SonarDistancePlugin::sonar_distance_send_cb,this);
+    	sonar_distance_sub = sonar_distance_nh.subscribe("/chatter",5,&SonarDistancePlugin::sonar_distance_send_cb,this);
 
     }
     

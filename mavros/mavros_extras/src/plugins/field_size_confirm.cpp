@@ -18,7 +18,7 @@ public:
 
         field_size_confirm_nh.param<std::string>("frame_id", frame_id, "field_size_confirm");
         //subcribe the topic and excute the callback function
-        field_size_confirm_sub = field_size_confirm_nh.subscribe("/field_size_confirm",500,&FieldSizeConfirmPlugin::field_size_confirm_send_cb,this);
+        field_size_confirm_sub = field_size_confirm_nh.subscribe("/field_size_confirm",5,&FieldSizeConfirmPlugin::field_size_confirm_send_cb,this);
     }
 
     std::string get_name() {

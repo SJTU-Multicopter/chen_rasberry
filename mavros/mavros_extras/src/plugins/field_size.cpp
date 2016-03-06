@@ -19,7 +19,7 @@ public:
 
         field_size_nh.param<std::string>("frame_id", frame_id, "field_size");
         //subcribe the topic and excute the callback function
-        field_size_sub = field_size_nh.subscribe("/field_size_set",500,&FieldSizePlugin::field_size_send_cb,this);
+        field_size_sub = field_size_nh.subscribe("/field_size_set",5,&FieldSizePlugin::field_size_send_cb,this);
 
     }
 

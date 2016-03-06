@@ -51,11 +51,11 @@ int main(int argc, char **argv)
                0.0,0.0,0.0;
   ros::NodeHandle nh;
 
-  ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 500,chatterCallback_local_position);
-  ros::Subscriber imu_sub = nh.subscribe("/mavros/imu/data", 1000,chatterCallback_imu_data);
-  ros::Subscriber velocity_sub = nh.subscribe("/mavros/local_position/local_velocity", 1000,chatterCallback_local_velocity);
+  ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 5,chatterCallback_local_position);
+  ros::Subscriber imu_sub = nh.subscribe("/mavros/imu/data", 5,chatterCallback_imu_data);
+  ros::Subscriber velocity_sub = nh.subscribe("/mavros/local_position/local_velocity", 5,chatterCallback_local_velocity);
 
-  ros::Publisher offboard_pub_v = nh.advertise<geometry_msgs::TwistStamped>("offboard/velocity", 1000);  
+  ros::Publisher offboard_pub_v = nh.advertise<geometry_msgs::TwistStamped>("offboard/velocity", 5);  
   
   ros::Rate loop_rate(LOOP_RATE);
   

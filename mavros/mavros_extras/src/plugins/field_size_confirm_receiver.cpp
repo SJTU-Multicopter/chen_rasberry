@@ -20,7 +20,7 @@ public:
 
 		// general params
 		field_size_confirm_receiver_nh.param<std::string>("frame_id", frame_id, "field_size_confirm_receiver");
-        field_size_confirm_receiver_pub = field_size_confirm_receiver_nh.advertise<mavros_extras::FieldSizeConfirm>("field_size_confirm_receiver", 100); //add publisher to handler
+        field_size_confirm_receiver_pub = field_size_confirm_receiver_nh.advertise<mavros_extras::FieldSizeConfirm>("field_size_confirm_receiver", 5); //add publisher to handler
 	}
 
 	const message_map get_rx_handlers() {
