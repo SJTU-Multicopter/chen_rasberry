@@ -4,8 +4,10 @@
 #include "mavros_extras/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
+#include <math.h>
 
 #define CLOSE_DIST 0.8  //m
+#define Pi 3.14159265
 
 void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg);
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
@@ -26,7 +28,7 @@ float start_py = 0.0;
 
 float current_px = 0.0;
 float current_py = 0.0;
-
+float current_yaw = 0.0;
 int total_num = -1;
 int msg_seq = -1;
 int close_counter = 0;
@@ -130,7 +132,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 	    	  setpoint.px = route_point[send_counter][0] + start_px; 
     	    setpoint.py = route_point[send_counter][1] + start_py;
     	    setpoint.ph = route_point[send_counter][2];
-          setpoint.yaw = route_yaw;
+          setpoint.yaw = current_yaw;
         }
 
 	    if(close_counter >= 1){
@@ -146,6 +148,12 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 
 	current_px = msg.pose.position.x;
 	current_py = msg.pose.position.y;
+	float q2=msg.pose.orientation.x; 
+	float q1=msg.pose.orientation.y; 
+	float q0=msg.pose.orientation.z; 
+	float q3=msg.pose.orientation.w; 
+	current_yaw = (-atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1))+Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2 
+
 }
 
 
