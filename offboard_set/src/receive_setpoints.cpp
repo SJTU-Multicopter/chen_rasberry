@@ -69,7 +69,7 @@ int main(int argc, char **argv)
       route_point_confirm.px_2 = route_point[msg_seq+1][0];
     	route_point_confirm.py_2 = route_point[msg_seq+1][1];
     	route_point_confirm.ph_2 = route_point[msg_seq+1][2];
-      route_point_confirm.seq = msg_seq;
+      route_point_confirm.seq = send_counter; //use this seq as the mark of fly position
       route_point_confirm.total = total_num;
       routepointconfirm_pub.publish(route_point_confirm);
     }
