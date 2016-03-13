@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     	routepoint_pub.publish(stop_setpoint); //ph = -2.0, stop sending setpoint, reject offboard
     }
     //send new route point
-    else if(offboard_ready && (msg_seq - send_counter) >= 0 && send_counter <= total_num)
+    else if(offboard_ready && (msg_seq - send_counter) >= -1 && send_counter <= total_num)
     {  		    
         routepoint_pub.publish(setpoint);
     }
