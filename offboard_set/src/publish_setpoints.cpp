@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(16);
   while (ros::ok())  
   {   	
-    if(msg.pose.position.z > 0) offboard_pub.publish(msg);   
+    if(msg.pose.position.z > -1994) offboard_pub.publish(msg);
     ros::spinOnce();  
     loop_rate.sleep();  
   }  
