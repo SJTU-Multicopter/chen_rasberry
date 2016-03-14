@@ -16,10 +16,14 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
 void chatterCallback_obstacle(const mavros_extras::LaserDistacne &msg);
 void chatterCallback_crop_distance(const std_msgs::Float32 &msg);
+void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);
 
 bool offboard_ready = false;
 bool obstacle_avoid_enable = false;
 bool obstacle_avoid_height_enable = false;
+bool obstacle_avoid_auto_enable = false;
+
+int fly_direction = 0;
 
 float current_px = 0.0;
 float current_py = 0.0;
@@ -48,13 +52,14 @@ int main(int argc, char **argv)
   ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 1,chatterCallback_mode);
   ros::Subscriber extrafunction_sub = nh.subscribe("/mavros/extra_function_receiver/extra_function_receiver", 1,chatterCallback_extra_function);
   ros::Subscriber obstacle_sub = nh.subscribe("/laser_send",1,chatterCallback_obstacle);
-  ros::Subscriber crop_distance_sub = nh.subscribe("crop_dist",1,chatterCallback_crop_distance);
+  ros::Subscriber crop_distance_sub = nh.subscribe("/crop_dist",1,chatterCallback_crop_distance);
+  ros::Subscriber fly_direction_sub = nh.subscribe("/offboard/direction", 1,chatterCallback_fly_direction);
 
   
   ros::Rate loop_rate(10);
   while (ros::ok())  
   {  
-  	if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
+    if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
     {
       processed_setpoint.px = current_px;
       processed_setpoint.py = current_py;
@@ -70,7 +75,7 @@ int main(int argc, char **argv)
       processed_setpoint.yaw = new_setpoint_yaw;
 
       //obstacle avoidance by CJ
-      if(obstacle_avoid_enable && obstacle_avoid_height_enable)
+      if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable)
       {
       	if(obstacle_distance>90.0 && obstacle_distance<300.0)
       	{
@@ -80,6 +85,18 @@ int main(int argc, char **argv)
       	  processed_setpoint.yaw = current_yaw;
       	}  
       }
+
+      if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable)
+      {
+      	if(obstacle_distance>90.0 && obstacle_distance<300.0)
+      	{
+      	  processed_setpoint.px = current_px;
+      	  processed_setpoint.py = current_py;
+      	  processed_setpoint.ph = current_pz;
+      	  processed_setpoint.yaw = current_yaw;
+      	}  
+      }
+
     }
     
     offboard_pub.publish(processed_setpoint);
@@ -131,6 +148,16 @@ void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &
   {
   	obstacle_avoid_enable = false;
   }
+
+  if(msg.obs_avoid_enable == 1)
+  {
+  	obstacle_avoid_auto_enable = false;
+  }
+  
+  if(msg.obs_avoid_enable ==2)
+  {
+  	obstacle_avoid_auto_enable = true;
+  }
 }
 
 //Subscribe obstacle msg by CJ
@@ -150,4 +177,10 @@ void chatterCallback_crop_distance(const std_msgs::Float32 &msg)
   {
   	obstacle_avoid_height_enable = false;
   }
+}
+
+//Subscribe fly direction by CJ
+void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg)
+{
+  fly_direction = msg.direction;
 }

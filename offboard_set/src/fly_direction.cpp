@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 
   ros::NodeHandle nh;
 
-  ros::Publisher direction_pub = nh.advertise<mavros_extras::FlyDirection>("offboard/direction", 5);
+  ros::Publisher direction_pub = nh.advertise<mavros_extras::FlyDirection>("/offboard/direction", 5);
   ros::Subscriber setpoint_sub = nh.subscribe("/offboard/setpoints_local", 5, chatterCallback_receive_setpoint_local);
   ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
   ros::Rate loop_rate(4);
