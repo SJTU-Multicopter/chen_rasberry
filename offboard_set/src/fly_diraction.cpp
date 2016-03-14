@@ -36,7 +36,7 @@ int main(int argc, char **argv)
   {
     if(set_h > -1994)
     {
-        set_yaw = - atan2(set_x-current_px,set_y-current_py);
+        set_yaw = - atan2(set_y-current_py,set_x-current_px);
         if(set_yaw < 0) set_yaw += 2*Pi;
         if(fabs(current_yaw - set_yaw) < Pi/4)  diraction_msg.diraction = 1;
         else if(fabs(current_yaw - set_yaw) > 3*Pi/4) diraction_msg.diraction = 2;
