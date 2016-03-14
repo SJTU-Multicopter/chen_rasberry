@@ -74,10 +74,10 @@ int main(int argc, char **argv)
       {
       	if(obstacle_distance>90.0 && obstacle_distance<300.0)
       	{
-      	  processed_setpoint.px = 
-      	  processed_setpoint.py = 
-      	  processed_setpoint.ph = 
-      	  processed_setpoint.yaw = 	
+      	  processed_setpoint.px = current_px;
+      	  processed_setpoint.py = current_py;
+      	  processed_setpoint.ph = current_pz;
+      	  processed_setpoint.yaw = current_yaw;
       	}  
       }
     }
