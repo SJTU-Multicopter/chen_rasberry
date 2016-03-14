@@ -1,0 +1,12 @@
+<launch>
+	<!-- vim: set ft=xml noet : -->
+	<!-- example launch script for PX4 based FCU's -->   
+        <node name="receive_setpoints" pkg="offboard_set" type="receive_setpoints" output="screen">
+        </node>
+        <node name="process_setpoints" pkg="offboard_set" type="process_setpoints" output="screen">
+        </node>
+        <node name="publish_setpoints" pkg="offboard_set" type="publish_setpoints" output="screen">
+        </node>
+        <node name="status_imitate" pkg="offboard_set" type="status_imitate" output="screen">
+        </node>
+</launch>
