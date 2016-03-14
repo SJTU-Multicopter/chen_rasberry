@@ -1,4 +1,5 @@
 #include "ros/ros.h"  
+#include "std_msgs/Float32.h"
 #include <math.h>
 #include "mavros_extras/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -13,8 +14,12 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
+void chatterCallback_obstacle(const mavros_extras::LaserDistacne &msg);
+void chatterCallback_crop_distance(const std_msgs::Float32 &msg);
 
 bool offboard_ready = false;
+bool obstacle_avoid_enable = false;
+bool obstacle_avoid_height_enable = false;
 
 float current_px = 0.0;
 float current_py = 0.0;
@@ -25,6 +30,9 @@ float new_setpoint_px = 0.0;
 float new_setpoint_py = 0.0;
 float new_setpoint_ph = 0.0;
 float new_setpoint_yaw = 0.0;
+
+float obstacle_distance = 0.0;
+float obstacle_angle = 0.0;
 
 int main(int argc, char **argv)  
 {  
@@ -39,6 +47,8 @@ int main(int argc, char **argv)
   ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
   ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 1,chatterCallback_mode);
   ros::Subscriber extrafunction_sub = nh.subscribe("/mavros/extra_function_receiver/extra_function_receiver", 1,chatterCallback_extra_function);
+  ros::Subscriber obstacle_sub = nh.subscribe("/laser_send",1,chatterCallback_obstacle);
+  ros::Subscriber crop_distance_sub = nh.subscribe("crop_dist",1,chatterCallback_crop_distance);
 
   
   ros::Rate loop_rate(10);
@@ -58,6 +68,18 @@ int main(int argc, char **argv)
       processed_setpoint.py = new_setpoint_py;
       processed_setpoint.ph = new_setpoint_ph;
       processed_setpoint.yaw = new_setpoint_yaw;
+
+      //obstacle avoidance by CJ
+      if(obstacle_avoid_enable && obstacle_avoid_height_enable)
+      {
+      	if(obstacle_distance>90.0 && obstacle_distance<300.0)
+      	{
+      	  processed_setpoint.px = 
+      	  processed_setpoint.py = 
+      	  processed_setpoint.ph = 
+      	  processed_setpoint.yaw = 	
+      	}  
+      }
     }
     
     offboard_pub.publish(processed_setpoint);
@@ -102,5 +124,30 @@ void chatterCallback_mode(const mavros::State &msg)
 
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
 {
-  ;
+  if(msg.obs_avoid_enable != 0)
+  {
+  	obstacle_avoid_enable = true;
+  }else
+  {
+  	obstacle_avoid_enable = false;
+  }
+}
+
+//Subscribe obstacle msg by CJ
+void chatterCallback_obstacle(const mavros_extras::LaserDistacne &msg)
+{
+  obstacle_distance = msg.min_distance;
+  obstacle_angle = msg.angle;
+}
+
+//Subscribe crop distance msg by CJ
+void chatterCallback_crop_distance(const std_msgs::Float32 &msg)
+{
+  if(msg.data >= 1.5)
+  {
+  	obstacle_avoid_height_enable = true;
+  }else
+  {
+  	obstacle_avoid_height_enable = false;
+  }
 }
