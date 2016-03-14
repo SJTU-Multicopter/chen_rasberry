@@ -1,11 +1,11 @@
 #include "ros/ros.h"
 #include "mavros_extras/PositionSetpoint.h"
-#include "mavros_extras/FlyDiraction.h"
+#include "mavros_extras/FlyDirection.h"
 #include "geometry_msgs/PoseStamped.h"
 #include <math.h>
 #define Pi 3.1415926
 
-mavros_extras::FlyDiraction diraction_msg;
+mavros_extras::FlyDirection direction_msg;
 float set_h;
 float set_x;
 float set_y;
@@ -24,11 +24,11 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 int main(int argc, char **argv)
 {
 
-  ros::init(argc, argv, "fly_diraction");
+  ros::init(argc, argv, "fly_direction");
 
   ros::NodeHandle nh;
 
-  ros::Publisher diraction_pub = nh.advertise<mavros_extras::FlyDiraction>("offboard/diraction", 5);
+  ros::Publisher direction_pub = nh.advertise<mavros_extras::FlyDirection>("offboard/direction", 5);
   ros::Subscriber setpoint_sub = nh.subscribe("/offboard/setpoints_local", 5, chatterCallback_receive_setpoint_local);
   ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
   ros::Rate loop_rate(4);
@@ -38,17 +38,17 @@ int main(int argc, char **argv)
     {
         set_yaw = - atan2(set_y-current_py,set_x-current_px);
         if(set_yaw < 0) set_yaw += 2*Pi;
-        if(fabs(current_yaw - set_yaw) < Pi/4)  diraction_msg.diraction = 1;
-        else if(fabs(current_yaw - set_yaw) > 3*Pi/4) diraction_msg.diraction = 2;
-        else if(current_yaw - set_yaw > Pi/4 && current_yaw - set_yaw < 3*Pi/4) diraction_msg.diraction = 3;
-        else diraction_msg.diraction = 4;
+        if(fabs(current_yaw - set_yaw) < Pi/4)  direction_msg.direction = 1;
+        else if(fabs(current_yaw - set_yaw) > 3*Pi/4) direction_msg.direction = 2;
+        else if(current_yaw - set_yaw > Pi/4 && current_yaw - set_yaw < 3*Pi/4) direction_msg.direction = 3;
+        else direction_msg.direction = 4;
 
-        diraction_pub.publish(diraction_msg);
+        direction_pub.publish(direction_msg);
     }
     else
     {
-        diraction_msg.diraction = 0;
-        diraction_pub.publish(diraction_msg);
+        direction_msg.direction = 0;
+        direction_pub.publish(direction_msg);
     }
     ros::spinOnce();
     loop_rate.sleep();

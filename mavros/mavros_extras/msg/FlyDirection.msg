@@ -2,4 +2,4 @@
 
 Header header
 
-uint8 diraction
+uint8 direction

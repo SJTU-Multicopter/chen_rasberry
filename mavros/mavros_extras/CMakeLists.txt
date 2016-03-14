@@ -68,7 +68,7 @@ add_message_files(
   ExtraFunction.msg
   ExtraFunctionReceiver.msg
   PositionSetpoint.msg
-  FlyDiraction.msg
+  FlyDirection.msg
 )
 
 ## Generate services in the 'srv' folder
