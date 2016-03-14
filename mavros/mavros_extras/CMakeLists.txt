@@ -137,10 +137,10 @@ add_library(mavros_extras
   #src/plugins/laser_receiver.cpp
   src/plugins/pump_controller.cpp
   src/plugins/pump_status.cpp
-  src/plugins/offboard_route_points.cpp
-  #src/plugins/offboard_route_points_receiver.cpp
-  #src/plugins/offboard_route_points_confirm.cpp
-  src/plugins/offboard_route_points_confirm_receiver.cpp
+  #src/plugins/offboard_route_points.cpp
+  src/plugins/offboard_route_points_receiver.cpp
+  src/plugins/offboard_route_points_confirm.cpp
+  #src/plugins/offboard_route_points_confirm_receiver.cpp
   src/plugins/extra_function.cpp
   src/plugins/extra_function_receiver.cpp
   
