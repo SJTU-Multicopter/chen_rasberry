@@ -1,11 +1,11 @@
 #include "ros/ros.h"  
 #include <math.h>
-#include "../../../devel/include/mavros_extras/PositionSetpoint.h"
+#include "mavros_extras/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
-#include "../../../devel/include/mavros/State.h"
-#include "../../../devel/include/mavros_extras/ExtraFunctionReceiver.h"
-#include "../../../devel/include/Eigen/Eigen/Eigen"
-#include "std_msgs/String.h"//new
+#include "mavros/State.h"
+#include "mavros_extras/ExtraFunctionReceiver.h"
+#include "Eigen/Dense"
+#include "std_msgs/String.h"   //new
 #define Pi 3.1415926
 using namespace Eigen;
 
