@@ -39,10 +39,10 @@
 	<description>Writtren by Clarence Chan for extra functions</description>
 	</class>
 	
-    <class name="offboard_route_points" type="mavplugin::OffboardRoutePointsPlugin" base_class_type="mavplugin::MavRosPlugin">
+    <class name="offboard_route_points_receiver" type="mavplugin::OffboardRoutePointsReceiverPlugin" base_class_type="mavplugin::MavRosPlugin">
 	<description>Writtren by Clarence Chan for offboard_route_points</description>
 	</class>
-    <class name="offboard_route_points_confirm_receiver" type="mavplugin::OffboardRoutePointsConfirmReceiverPlugin" base_class_type="mavplugin::MavRosPlugin">
+    <class name="offboard_route_points_confirm" type="mavplugin::OffboardRoutePointsConfirmPlugin" base_class_type="mavplugin::MavRosPlugin">
 	<description>Writtren by Clarence Chan for offboard_route_points</description>
 	</class>
 
