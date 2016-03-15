@@ -148,8 +148,8 @@ int main(int argc, char **argv)
       }//end of init
       if(method == 1){//non const vel
         if(current_t < time2fly){
-          processed_setpoint.px = p_optimal_calculate(1,Paras_matrix(1,0),Paras_matrix(1,1),Paras_matrix(1,2),current_t, start_pos[0]); 
-          processed_setpoint.py = p_optimal_calculate(0,Paras_matrix(0,0),Paras_matrix(0,1),Paras_matrix(0,2),current_t, start_pos[1]);
+          processed_setpoint.px = p_optimal_calculate(0,Paras_matrix(0,0),Paras_matrix(0,1),Paras_matrix(0,2),current_t, start_pos[0]); 
+          processed_setpoint.py = p_optimal_calculate(1,Paras_matrix(1,0),Paras_matrix(1,1),Paras_matrix(1,2),current_t, start_pos[1]);
           processed_setpoint.ph = new_setpoint_ph;
           processed_setpoint.yaw = new_setpoint_yaw;
         }
@@ -491,7 +491,7 @@ float posPlan(float max_jerk, float max_acc, float t,
   const VectorXf& nodes_vel, const VectorXf& nodes_pos)
 {
   float tau = t - nodes_time(stage - 1);
-  float pos = 0;
+  float pos = nodes_pos(7);
   switch (stage){
   case 1:
     pos = nodes_pos(0) + nodes_vel(0) * tau + max_jerk * tau * tau * tau / 6;
