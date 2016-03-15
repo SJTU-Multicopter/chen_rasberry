@@ -5,11 +5,15 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
 #include "mavros_extras/ExtraFunctionReceiver.h"
+#include "Eigen/Dense"
 
 #define Pi 3.1415926
 
+using namespace Eigen;
+
 mavros_extras::PositionSetpoint processed_setpoint;
 
+void rotate(float roll, float pitch, float yaw, Vector3f input, Vector3f output);
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
@@ -22,6 +26,8 @@ bool offboard_ready = false;
 bool obstacle_avoid_enable = false;
 bool obstacle_avoid_height_enable = false;
 bool obstacle_avoid_auto_enable = false;
+Vector3f local_pos(0.0,0.0,0.0);
+Vector3f body_pos(0.0,0.0,0.0);
 
 int fly_direction = 0;
 
@@ -81,22 +87,10 @@ int main(int argc, char **argv)
       	{
       	  processed_setpoint.px = current_px;
       	  processed_setpoint.py = current_py;
-      	  processed_setpoint.ph = current_pz;
+      	  processed_setpoint.ph = current_ph;
       	  processed_setpoint.yaw = current_yaw;
       	}  
       }
-
-      if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable)
-      {
-      	if(obstacle_distance>90.0 && obstacle_distance<300.0)
-      	{
-      	  processed_setpoint.px = current_px;
-      	  processed_setpoint.py = current_py;
-      	  processed_setpoint.ph = current_pz;
-      	  processed_setpoint.yaw = current_yaw;
-      	}  
-      }
-
     }
     
     offboard_pub.publish(processed_setpoint);
@@ -111,6 +105,16 @@ int main(int argc, char **argv)
 
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg)
 {
+  if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable)
+  {
+    if(obstacle_distance>90.0 && obstacle_distance<300.0)
+    {
+      processed_setpoint.px = current_px;
+      processed_setpoint.py = current_py;
+      processed_setpoint.ph = current_ph;
+      processed_setpoint.yaw = current_yaw;
+    }  
+  }
   new_setpoint_px = msg.px;
   new_setpoint_py = msg.py;
   new_setpoint_ph = msg.ph;
@@ -123,6 +127,10 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
   current_px = msg.pose.position.x;
   current_py = msg.pose.position.y;
   current_pz = msg.pose.position.z;
+
+  local_pos(0) = msg.pose.position.x;
+  local_pos(1) = msg.pose.position.y;
+  local_pos(2) = msg.pose.position.z;
 
   float q2=msg.pose.orientation.x;
   float q1=msg.pose.orientation.y;
@@ -184,3 +192,27 @@ void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg)
 {
   fly_direction = msg.direction;
 }
+
+void rotate(float roll, float pitch, float yaw, Vector3f input, Vector3f output) 
+{
+  float cp = cosf(pitch);
+  float sp = sinf(pitch);
+  float sr = sinf(roll);
+  float cr = cosf(roll);
+  float sy = sinf(yaw);
+  float cy = cosf(yaw);
+
+  Matrix3f data;
+  data[0][0] = cp * cy;
+  data[0][1] = (sr * sp * cy) - (cr * sy);
+  data[0][2] = (cr * sp * cy) + (sr * sy);
+  data[1][0] = cp * sy;
+  data[1][1] = (sr * sp * sy) + (cr * cy);
+  data[1][2] = (cr * sp * sy) - (sr * cy);
+  data[2][0] = -sp;
+  data[2][1] = sr * cp;
+  data[2][2] = cr * cp;
+
+  output = data * input;
+}
+
