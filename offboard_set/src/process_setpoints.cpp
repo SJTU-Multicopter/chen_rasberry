@@ -4,7 +4,7 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
 #include "mavros_extras/ExtraFunctionReceiver.h"
-#include "mavros_extras/LaserDistacne.h"
+#include "mavros_extras/LaserDistance.h"
 #include "mavros_extras/FlyDirection.h"
 #include "Eigen/Dense"
 #include "std_msgs/String.h"   //new
