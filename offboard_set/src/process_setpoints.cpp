@@ -55,7 +55,9 @@ bool obstacle_avoid_auto_enable = false;  //add by CJ
 Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
 
-int fly_direction = 0;
+int fly_direction = 0; //add by CJ
+float obstacle_distance = 0.0;  //add by CJ
+float obstacle_angle = 0.0;  //add by CJ
 
 float current_px = 0.0;
 float current_py = 0.0;
