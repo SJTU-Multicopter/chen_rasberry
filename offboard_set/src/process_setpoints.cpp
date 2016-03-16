@@ -55,6 +55,8 @@ bool offboard_ready = false;
 bool obstacle_avoid_enable = false;  //add by CJ
 bool obstacle_avoid_height_enable = false;  //add by CJ
 bool obstacle_avoid_auto_enable = false;  //add by CJ
+bool laser_fly_height_enable = false;
+
 Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
 
@@ -573,23 +575,14 @@ float posPlan(float max_jerk, float max_acc, float t,
 
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
 {
-  if(msg.obs_avoid_enable != 0)
-  {
-    obstacle_avoid_enable = true;
-  }else
-  {
-    obstacle_avoid_enable = false;
-  }
+  if(msg.obs_avoid_enable != 0)  obstacle_avoid_enable = true;
+  else obstacle_avoid_enable = false;
 
-  if(msg.obs_avoid_enable == 1)
-  {
-    obstacle_avoid_auto_enable = false;
-  }
-  
-  if(msg.obs_avoid_enable ==2)
-  {
-    obstacle_avoid_auto_enable = true;
-  }
+  if(msg.obs_avoid_enable == 1)  obstacle_avoid_auto_enable = false; 
+  if(msg.obs_avoid_enable ==2)  obstacle_avoid_auto_enable = true;
+
+  if(msg.laser_height_enable == 1) laser_fly_height_enable = true;
+  else laser_fly_height_enable = false;
 }
 
 //Subscribe obstacle msg by CJ
