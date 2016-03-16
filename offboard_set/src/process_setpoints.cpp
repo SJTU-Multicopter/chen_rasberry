@@ -4,8 +4,11 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
 #include "mavros_extras/ExtraFunctionReceiver.h"
+#include "mavros_extras/LaserDistacne.h"
+#include "mavros_extras/FlyDirection.h"
 #include "Eigen/Dense"
 #include "std_msgs/String.h"   //new
+#include "std_msgs/Float32.h"
 #define Pi 3.1415926
 using namespace Eigen;
 
