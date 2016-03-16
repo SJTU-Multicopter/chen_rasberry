@@ -14,6 +14,10 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
+void chatterCallback_obstacle(const mavros_extras::LaserDistacne &msg);  //add by CJ
+void chatterCallback_crop_distance(const std_msgs::Float32 &msg);  //add by CJ
+void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
+void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
 
 float posPlan(float max_jerk, float max_acc, float t, 
   int stage, const VectorXf& nodes_time, 
@@ -45,6 +49,13 @@ float distance(float x0, float y0, float x1, float y1);
 
 
 bool offboard_ready = false;
+bool obstacle_avoid_enable = false;  //add by CJ
+bool obstacle_avoid_height_enable = false;  //add by CJ
+bool obstacle_avoid_auto_enable = false;  //add by CJ
+Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
+Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
+
+int fly_direction = 0;
 
 float current_px = 0.0;
 float current_py = 0.0;
@@ -207,6 +218,25 @@ int main(int argc, char **argv)
 //      processed_setpoint.yaw = new_setpoint_yaw;
     }//end of if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
     current_t += 1.0 / LOOP_RATE_PLAN;
+
+    //obstacle avoidance by CJ
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable)
+    {
+      if(obstacle_distance>90.0 && obstacle_distance<300.0)
+      {
+        while(offboard_ready && ros::ok())
+        {
+          processed_setpoint.px = current_px;
+          processed_setpoint.py = current_py;
+          processed_setpoint.ph = current_ph;
+          processed_setpoint.yaw = current_yaw;
+
+          ros::spinOnce();  
+          loop_rate.sleep();
+        }     
+      }  
+    }
+
     offboard_pub.publish(processed_setpoint);
     ros::spinOnce();  
     loop_rate.sleep();  
@@ -286,11 +316,6 @@ void chatterCallback_mode(const mavros::State &msg)
     different_sp_rcv =true;
     mode_change_flag_2 = false;
   }
-}
-
-void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
-{
-  ;
 }
 
 
@@ -539,4 +564,69 @@ float posPlan(float max_jerk, float max_acc, float t,
   break;
   }
   return pos;
+}
+
+void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
+{
+  if(msg.obs_avoid_enable != 0)
+  {
+    obstacle_avoid_enable = true;
+  }else
+  {
+    obstacle_avoid_enable = false;
+  }
+
+  if(msg.obs_avoid_enable == 1)
+  {
+    obstacle_avoid_auto_enable = false;
+  }
+  
+  if(msg.obs_avoid_enable ==2)
+  {
+    obstacle_avoid_auto_enable = true;
+  }
+}
+
+//Subscribe obstacle msg by CJ
+void chatterCallback_obstacle(const mavros_extras::LaserDistacne &msg)
+{
+  obstacle_distance = msg.min_distance;
+  obstacle_angle = msg.angle;
+}
+
+//Subscribe crop distance msg by CJ
+void chatterCallback_crop_distance(const std_msgs::Float32 &msg)
+{
+  if(msg.data >= 1.5)
+  {
+    obstacle_avoid_height_enable = true;
+  }else
+  {
+    obstacle_avoid_height_enable = false;
+  }
+}
+
+//Subscribe fly direction by CJ
+void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg)
+{
+  fly_direction = msg.direction;
+}
+
+void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
+{
+  float sy = sinf(yaw);
+  float cy = cosf(yaw);
+
+  Matrix3f data;
+  data(0,0) = cy;
+  data(0,1) = -sy;
+  data(0,2) = 0.0;
+  data(1,0) = sy;
+  data(1,1) = cy;
+  data(1,2) = 0.0;
+  data(2,0) = 0.0;
+  data(2,1) = 0.0;
+  data(2,2) = 1.0;
+
+  output = data * input;
 }
