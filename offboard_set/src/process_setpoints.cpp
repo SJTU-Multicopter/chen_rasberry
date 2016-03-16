@@ -17,7 +17,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
-void chatterCallback_obstacle(const mavros_extras::LaserDistacne &msg);  //add by CJ
+void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add by CJ
 void chatterCallback_crop_distance(const std_msgs::Float32 &msg);  //add by CJ
 void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
 void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
@@ -593,7 +593,7 @@ void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &
 }
 
 //Subscribe obstacle msg by CJ
-void chatterCallback_obstacle(const mavros_extras::LaserDistacne &msg)
+void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 {
   obstacle_distance = msg.min_distance;
   obstacle_angle = msg.angle;
