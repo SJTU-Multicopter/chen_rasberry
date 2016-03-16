@@ -98,7 +98,9 @@ int main(int argc, char **argv)
   ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
   ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 1,chatterCallback_mode);
   ros::Subscriber extrafunction_sub = nh.subscribe("/mavros/extra_function_receiver/extra_function_receiver", 1,chatterCallback_extra_function);
-  
+  ros::Subscriber obstacle_sub = nh.subscribe("/laser_send",1,chatterCallback_obstacle);
+  ros::Subscriber crop_distance_sub = nh.subscribe("/crop_dist",1,chatterCallback_crop_distance);
+  ros::Subscriber fly_direction_sub = nh.subscribe("/offboard/direction", 1,chatterCallback_fly_direction);
   #define LOOP_RATE_PLAN 10
   ros::Rate loop_rate(LOOP_RATE_PLAN);
 
