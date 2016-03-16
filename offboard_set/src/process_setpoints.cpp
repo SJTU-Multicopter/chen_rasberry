@@ -56,6 +56,7 @@ bool obstacle_avoid_enable = false;  //add by CJ
 bool obstacle_avoid_height_enable = false;  //add by CJ
 bool obstacle_avoid_auto_enable = false;  //add by CJ
 bool laser_fly_height_enable = false;
+bool lidar_running = false;
 
 Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
@@ -63,6 +64,14 @@ Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
 int fly_direction = 0; //add by CJ
 float obstacle_distance = 0.0;  //add by CJ
 float obstacle_angle = 0.0;  //add by CJ
+float stop_px = 0.0;
+float stop_py = 0.0;
+float stop_ph = 0.0;
+float stop_yaw = 0.0;
+
+int lidar_counter = 0;
+float laser_height_last = 0.0;
+float laser_height = 3.0;
 
 float current_px = 0.0;
 float current_py = 0.0;
@@ -233,13 +242,19 @@ int main(int argc, char **argv)
     {
       if(obstacle_distance>90.0 && obstacle_distance<300.0)
       {
+        stop_px = current_px;
+        stop_py = current_py;
+        stop_ph = current_ph;
+        stop_yaw = current_yaw;
+
         while(offboard_ready && ros::ok())
         {
-          processed_setpoint.px = current_px;
-          processed_setpoint.py = current_py;
-          processed_setpoint.ph = current_ph;
-          processed_setpoint.yaw = current_yaw;
-
+          processed_setpoint.px = stop_px;
+          processed_setpoint.py = stop_py;
+          processed_setpoint.ph = stop_ph;
+          processed_setpoint.yaw = stop_yaw;
+          
+          offboard_pub.publish(processed_setpoint);
           ros::spinOnce();  
           loop_rate.sleep();
         }     
@@ -284,7 +299,10 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
   }
   new_setpoint_px = msg.px;
   new_setpoint_py = msg.py;
-  new_setpoint_ph = msg.ph;
+
+  if(laser_fly_height_enable && lidar_running) new_setpoint_ph = msg.ph - laser_height + current_ph ;
+  else new_setpoint_ph = msg.ph;
+
   new_setpoint_yaw = msg.yaw;
   ended_pos[0] = new_setpoint_px;
   ended_pos[1] = new_setpoint_py;
@@ -597,12 +615,25 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 //Subscribe crop distance msg by CJ
 void chatterCallback_crop_distance(const std_msgs::Float32 &msg)
 {
-  if(msg.data >= 1.5)
+  if(msg.data <= -1.5)
   {
     obstacle_avoid_height_enable = true;
   }else
   {
     obstacle_avoid_height_enable = false;
+  }
+  laser_height = -msg.data;
+
+  lidar_counter += 1;
+  if(lidar_counter > 20)
+  {
+    if(fabs(laser_height_last - laser_height)<0.00001) lidar_running = false;
+    else lidar_running = true;
+
+    if(fabs(laser_height-6.0)<0.01)  lidar_running = true;
+
+    laser_height_last = laser_height;
+    lidar_counter = 0;
   }
 }
 
