@@ -15,16 +15,18 @@ void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
 
-
-
 float posPlan(float max_jerk, float max_acc, float t, 
   int stage, const VectorXf& nodes_time, 
   const VectorXf& nodes_vel, const VectorXf& nodes_pos);
+
 float velPlan(float max_jerk, float max_acc, float t, 
   int stage, const VectorXf& nodes_time, const VectorXf& nodes_vel);
+
 float accPlan(float max_jerk, float max_acc, float t, 
   int stage, const VectorXf& nodes_time);
+
 float jerkPlan(float max_jerk, int stage);
+
 int trapezoidalTraj(float start_pos, float ended_pos, 
   float MAX_v, float MAX_pitch_deg, float MAX_j,
   VectorXf& nodes_time, 
@@ -60,7 +62,11 @@ float start_ph = 0.0;
 float start_yaw = 0.0;
 
 bool different_sp_rcv = false;
+bool mode_change_flag_1 = false;
+bool mode_change_flag_2 = false;
+
 mavros_extras::PositionSetpoint processed_setpoint;
+
 int main(int argc, char **argv)  
 {  
   
@@ -263,8 +269,23 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 }
 void chatterCallback_mode(const mavros::State &msg)
 {
-  if(msg.mode=="OFFBOARD") offboard_ready=true;
-  else offboard_ready=false;
+  if(msg.mode=="OFFBOARD") 
+    {
+      offboard_ready=true;
+      mode_change_flag_1 = true;
+    }
+  else 
+    {
+      offboard_ready=false;
+      mode_change_flag_1 = false;
+      mode_change_flag_2 = true;   
+    }
+
+  if(mode_change_flag_1 && mode_change_flag_2) 
+  {
+    different_sp_rcv =true;
+    mode_change_flag_2 = false;
+  }
 }
 
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)

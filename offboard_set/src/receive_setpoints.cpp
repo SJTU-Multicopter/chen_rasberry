@@ -65,10 +65,10 @@ int main(int argc, char **argv)
     {
     	route_point_confirm.px_1 = route_point[msg_seq][0];
     	route_point_confirm.py_1 = route_point[msg_seq][1];
-    	route_point_confirm.ph_1 = route_point[msg_seq][2];
+    	route_point_confirm.ph_1 = start_px; // send to reset home position in GS 
       route_point_confirm.px_2 = route_point[msg_seq+1][0];
     	route_point_confirm.py_2 = route_point[msg_seq+1][1];
-    	route_point_confirm.ph_2 = route_point[msg_seq+1][2];
+    	route_point_confirm.ph_2 = start_py; // send to reset home position in GS
       route_point_confirm.seq = send_counter; //use this seq as the mark of fly position
       route_point_confirm.total = total_num;
       routepointconfirm_pub.publish(route_point_confirm);
