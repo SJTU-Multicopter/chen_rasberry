@@ -21,6 +21,7 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add b
 void chatterCallback_crop_distance(const std_msgs::Float32 &msg);  //add by CJ
 void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
 void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
+void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix);
 
 float posPlan(float max_jerk, float max_acc, float t, 
   int stage, const VectorXf& nodes_time, 
@@ -55,19 +56,26 @@ bool offboard_ready = false;
 bool obstacle_avoid_enable = false;  //add by CJ
 bool obstacle_avoid_height_enable = false;  //add by CJ
 bool obstacle_avoid_auto_enable = false;  //add by CJ
+bool auto_avoid_processing = false; //add by CJ
 bool laser_fly_height_enable = false;
 bool lidar_running = false;
 
 Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
+Vector3f local_pos_stop(0.0,0.0,0.0);  //add by CJ
+Vector3f body_pos_stop(0.0,0.0,0.0);  //add by CJ
+Matrix<float, 4, 2> obstacle_avoid_trajectory;  //add by CJ
+Vector3f next_pos(0.0,0.0,0.0);
+
 
 int fly_direction = 0; //add by CJ
+int auto_avoid_count = 0;
 float obstacle_distance = 0.0;  //add by CJ
 float obstacle_angle = 0.0;  //add by CJ
-float stop_px = 0.0;
-float stop_py = 0.0;
-float stop_ph = 0.0;
-float stop_yaw = 0.0;
+float stop_px = 0.0;  //add by CJ
+float stop_py = 0.0;  //add by CJ
+float stop_ph = 0.0;  //add by CJ
+float stop_yaw = 0.0;  //add by CJ
 
 int lidar_counter = 0;
 float laser_height_last = 0.0;
@@ -242,8 +250,12 @@ int main(int argc, char **argv)
     {
       if(obstacle_distance>90.0 && obstacle_distance<300.0)
       {
-        stop_px = current_px;
-        stop_py = current_py;
+        rotate(current_yaw, local_pos, body_pos);
+        body_pos_stop(0) = body_pos(0) - (300.0 - obstacle_distance) / 100.0f * cosf(obstacle_angle / 180.0 * Pi);
+        body_pos_stop(1) = body_pos(1) + (300.0 - obstacle_distance) / 100.0f * sinf(obstacle_angle / 180.0 * Pi);
+        rotate(-current_yaw, body_pos_stop, local_pos_stop);
+        stop_px = local_pos_stop(0);
+        stop_py = local_pos_stop(1);
         stop_ph = current_ph;
         stop_yaw = current_yaw;
 
@@ -286,6 +298,44 @@ int float_near(float a, float b, float dif)
 }
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg)
 {
+//add by CJ
+  if(auto_avoid_processing){
+    if(auto_avoid_count == 0){
+      obstacle_avoid_trajectory_generation(local_pos, next_pos, obstacle_avoid_trajectory);
+      auto_avoid_count++;
+      different_sp_rcv = true;
+    }
+    if(auto_avoid_count == 1){
+      different_sp_rcv = true;
+      start_pos[0] = obstacle_avoid_trajectory(0,0);
+      start_pos[1] = obstacle_avoid_trajectory(0,1);
+      ended_pos[0] = obstacle_avoid_trajectory(1,0);
+      ended_pos[1] = obstacle_avoid_trajectory(1,1);
+      auto_avoid_count++;
+    }
+    if(auto_avoid_count == 2){
+      different_sp_rcv = true;
+      start_pos[0] = obstacle_avoid_trajectory(1,0);
+      start_pos[1] = obstacle_avoid_trajectory(1,1);
+      ended_pos[0] = obstacle_avoid_trajectory(2,0);
+      ended_pos[1] = obstacle_avoid_trajectory(2,1);
+      auto_avoid_count++;
+    }
+    if(auto_avoid_count == 3){
+      different_sp_rcv = true;
+      start_pos[0] = obstacle_avoid_trajectory(2,0);
+      start_pos[1] = obstacle_avoid_trajectory(2,1);
+      ended_pos[0] = obstacle_avoid_trajectory(3,0);
+      ended_pos[1] = obstacle_avoid_trajectory(3,1);
+      auto_avoid_count++;
+    }
+    if(auto_avoid_count == 4){
+      auto_avoid_processing = false;
+      auto_avoid_count = 0;
+    }
+    
+  }else{
+  
   if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05) && float_near(msg.ph, new_setpoint_ph, 0.05)){
   //a same sp is rcved
 
@@ -306,7 +356,9 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
   new_setpoint_yaw = msg.yaw;
   ended_pos[0] = new_setpoint_px;
   ended_pos[1] = new_setpoint_py;
-//  ROS_INFO("yaw %f",new_setpoint_yaw);
+  next_pos(0) = msg.px;
+  next_pos(1) = msg.py;
+  }
 }
 
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
@@ -314,6 +366,10 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
   current_px = msg.pose.position.x;
   current_py = msg.pose.position.y;
   current_ph = msg.pose.position.z;
+
+  local_pos(0) = msg.pose.position.x;
+  local_pos(1) = msg.pose.position.y;
+  local_pos(2) = msg.pose.position.z;
 
   float q2=msg.pose.orientation.x;
   float q1=msg.pose.orientation.y;
@@ -610,6 +666,10 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 {
   obstacle_distance = msg.min_distance;
   obstacle_angle = msg.angle;
+  if(obstacle_distance > 90.0 && obstacle_distance < 300.0){
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable)  auto_avoid_processing = true;
+    else auto_avoid_processing = false;
+  }
 }
 
 //Subscribe crop distance msg by CJ
@@ -643,6 +703,7 @@ void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg)
   fly_direction = msg.direction;
 }
 
+//rotate function
 void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
 {
   float sy = sinf(yaw);
@@ -660,4 +721,25 @@ void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
   data(2,2) = 1.0;
 
   output = data * input;
+}
+
+void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix)
+{
+  Vector3f obstacle_pos_body;
+  Vector3f obstacle_pos_local;
+
+  obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
+  obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
+  rotate(-current_yaw, obstacle_pos_body, obstacle_pos_local);
+
+
+
+  trajectory_matrix(0,0) = current_pos(0);
+  trajectory_matrix(0,1) = current_pos(1);
+  trajectory_matrix(1,0)
+  trajectory_matrix(1,1)
+  trajectory_matrix(2,0)
+  trajectory_matrix(2,1)
+  trajectory_matrix(3,0)
+  trajectory_matrix(3,1)
 }
