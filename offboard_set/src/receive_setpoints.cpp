@@ -65,10 +65,10 @@ int main(int argc, char **argv)
     {
     	route_point_confirm.px_1 = route_point[msg_seq][0];
     	route_point_confirm.py_1 = route_point[msg_seq][1];
-    	route_point_confirm.ph_1 = start_px; // send to reset home position in GS 
+    	route_point_confirm.ph_1 = route_point[msg_seq][2]; 
       route_point_confirm.px_2 = route_point[msg_seq+1][0];
     	route_point_confirm.py_2 = route_point[msg_seq+1][1];
-    	route_point_confirm.ph_2 = start_py; // send to reset home position in GS
+    	route_point_confirm.ph_2 = route_point[msg_seq+1][2]; 
       route_point_confirm.seq = send_counter; //use this seq as the mark of fly position
       route_point_confirm.total = total_num;
       routepointconfirm_pub.publish(route_point_confirm);
@@ -78,12 +78,8 @@ int main(int argc, char **argv)
     if(!offboard_ready && msg_seq < 1)
     {
     	send_counter = 0;
-
-    	//set start px, py to correct setpoint, especially when the UAV get route points from GS while flying
-    	start_px = current_px;
-    	start_py = current_py;
-        stop_setpoint.ph = -2000.0;
-        routepoint_pub.publish(stop_setpoint); //ph = -2000.0, stop sending setpoint, reject offboard
+      stop_setpoint.ph = -2000.0;
+      routepoint_pub.publish(stop_setpoint); //ph = -2000.0, stop sending setpoint, reject offboard
     }
     //send new route point
     else if(offboard_ready && (msg_seq - send_counter) >= -1 && send_counter <= total_num)
@@ -129,8 +125,8 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
         
         if(send_counter == 0) //initial point
 	    {
-	    	  setpoint.px = route_point[send_counter][0] + start_px; 
-    	    setpoint.py = route_point[send_counter][1] + start_py;
+	    	  setpoint.px = route_point[send_counter][0]; 
+    	    setpoint.py = route_point[send_counter][1];
     	    setpoint.ph = route_point[send_counter][2];
           setpoint.yaw = current_yaw;
         }
@@ -139,8 +135,8 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
           close_counter = 0;
             //set new route point
           send_counter += 1;
-    	    setpoint.px = route_point[send_counter][0] + start_px;
-    	    setpoint.py = route_point[send_counter][1] + start_py;
+    	    setpoint.px = route_point[send_counter][0];
+    	    setpoint.py = route_point[send_counter][1];
     	    setpoint.ph = route_point[send_counter][2];
           setpoint.yaw = route_yaw;
 	    }
