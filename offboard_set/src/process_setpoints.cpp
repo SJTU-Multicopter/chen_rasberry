@@ -117,7 +117,7 @@ int main(int argc, char **argv)
   float max_a = 0;
 
   int method = 1;
-  float avrg_vel = 3.0;
+  float avrg_vel = 1.0;
   float time2fly = 0.0;
   float current_t = 0.0;
   float avrg_vx = 0.0;
