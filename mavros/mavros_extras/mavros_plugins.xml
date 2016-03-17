@@ -45,5 +45,8 @@
     <class name="offboard_route_points_confirm" type="mavplugin::OffboardRoutePointsConfirmPlugin" base_class_type="mavplugin::MavRosPlugin">
 	<description>Writtren by Clarence Chan for offboard_route_points</description>
 	</class>
+	<class name="laser_distance" type="mavplugin::LaserDistancePlugin" base_class_type="mavplugin::MavRosPlugin">
+	<description>Writtren by Clarence Chan for laser</description>
+	</class>
 
 </library>
