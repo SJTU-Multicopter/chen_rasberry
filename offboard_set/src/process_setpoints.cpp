@@ -739,7 +739,7 @@ void obstacle_avoid_trajectory_generation(const Vector3f& current_position, cons
   n_vector(0) = direction(1);
   n_vector(1) = -direction(0);
   n_vector = n_vector.normalized();
-  if(direction.dot(n_vector) >= 0) n_vector = -n_vector;
+  if(n_vector.dot(obstacle_pos_local) >= 0) n_vector = -n_vector;
 
   trajectory_matrix(0,0) = current_position(0);
   trajectory_matrix(0,1) = current_position(1);
