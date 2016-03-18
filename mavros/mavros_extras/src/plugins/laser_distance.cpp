@@ -20,7 +20,7 @@ public:
     	laser_distance_nh.param<std::string>("frame_id", frame_id, "laser_distance");
         //subcribe the topic and excute the callback function
     	laser_distance_sub = laser_distance_nh.subscribe("/laser_send",5,&LaserDistancePlugin::laser_distance_send_cb,this);
-        crop_height_sub = laser_distance_nh.subscribe("/crop_dist",5,&LaserDistancePlugin::crop_distance_send_cb,this)
+        crop_height_sub = laser_distance_nh.subscribe("/crop_dist",5,&LaserDistancePlugin::crop_distance_send_cb,this);
 
     }
     
@@ -39,6 +39,7 @@ public:
 private:
 	ros::NodeHandle laser_distance_nh;
 	ros::Subscriber laser_distance_sub;
+    ros::Subscriber crop_height_sub;
 	UAS *uas;
 
     float crop_dist;
