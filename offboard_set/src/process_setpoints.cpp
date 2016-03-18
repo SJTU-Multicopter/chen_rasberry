@@ -630,7 +630,7 @@ void chatterCallback_crop_distance(const std_msgs::Float32 &msg)
     if(fabs(laser_height_last - laser_height)<0.00001) lidar_running = false;
     else lidar_running = true;
 
-    if(fabs(laser_height-6.0)<0.01)  lidar_running = false;
+    if(fabs(laser_height-6.0)<0.01)  lidar_running = true;
 
     laser_height_last = laser_height;
     lidar_counter = 0;
