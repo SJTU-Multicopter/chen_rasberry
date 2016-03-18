@@ -5,7 +5,6 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
 #include <math.h>
-
 #define CLOSE_DIST 0.8  //m
 #define Pi 3.14159265
 
@@ -88,7 +87,7 @@ int main(int argc, char **argv)
     }
     else 
     {   
-    	stop_setpoint.ph = -1.0;
+    	stop_setpoint.ph = -1000.0;
     	routepoint_pub.publish(stop_setpoint); //ph = -1.0, stop the UAV by send local position as setpoint
     }
     

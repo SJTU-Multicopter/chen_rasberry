@@ -12,7 +12,6 @@
 #define Pi 3.1415926
 using namespace Eigen;
 
-
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
@@ -140,7 +139,7 @@ int main(int argc, char **argv)
   while (ros::ok())  
   {  
 
-  	if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
+  	if(new_setpoint_ph  > -1001.0 && new_setpoint_ph < -999.0)
     {
       processed_setpoint.px = current_px;
       processed_setpoint.py = current_py;
