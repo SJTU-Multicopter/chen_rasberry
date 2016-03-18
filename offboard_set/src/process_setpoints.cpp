@@ -65,11 +65,11 @@ Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f local_pos_stop(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos_stop(0.0,0.0,0.0);  //add by CJ
 Matrix<float, 4, 2> obstacle_avoid_trajectory;  //add by CJ
-Vector3f next_pos(0.0,0.0,0.0);
+Vector3f next_pos(0.0,0.0,0.0);  //add by CJ
 
 
 int fly_direction = 0; //add by CJ
-int auto_avoid_count = 0;
+int auto_avoid_count = 0;  //add by CJ
 float obstacle_distance = 0.0;  //add by CJ
 float obstacle_angle = 0.0;  //add by CJ
 float stop_px = 0.0;  //add by CJ
@@ -667,7 +667,7 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
   obstacle_distance = msg.min_distance;
   obstacle_angle = msg.angle;
   if(obstacle_distance > 90.0 && obstacle_distance < 300.0){
-    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable)  auto_avoid_processing = true;
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing)  auto_avoid_processing = true;
     else auto_avoid_processing = false;
   }
 }
@@ -723,23 +723,30 @@ void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
   output = data * input;
 }
 
-void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix)
+void obstacle_avoid_trajectory_generation(const Vector3f& current_position, const Vector3f& next_position, Matrix<float, 4, 2> trajectory_matrix)
 {
   Vector3f obstacle_pos_body;
   Vector3f obstacle_pos_local;
+  Vector3f direction;
+  Vector3f n_vector;
 
   obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
   obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
   rotate(-current_yaw, obstacle_pos_body, obstacle_pos_local);
 
+  direction = next_position - current_position;
+  direction = direction.normalized();
+  n_vector(0) = direction(1);
+  n_vector(1) = -direction(0);
+  n_vector = n_vector.normalized();
+  if(direction.dot(n_vector) <= 0) n_vector = -n_vector;
 
-
-  trajectory_matrix(0,0) = current_pos(0);
-  trajectory_matrix(0,1) = current_pos(1);
-  trajectory_matrix(1,0)
-  trajectory_matrix(1,1)
-  trajectory_matrix(2,0)
-  trajectory_matrix(2,1)
-  trajectory_matrix(3,0)
-  trajectory_matrix(3,1)
+  trajectory_matrix(0,0) = current_position(0);
+  trajectory_matrix(0,1) = current_position(1);
+  trajectory_matrix(1,0) = current_position(0) + 2 * n_vector(0);
+  trajectory_matrix(1,1) = current_position(1) + 2 * n_vector(1);
+  trajectory_matrix(2,0) = trajectory_matrix(1,0) + 5.0 * direction(0);
+  trajectory_matrix(2,1) = trajectory_matrix(1,1) + 5.0 * direction(1);
+  trajectory_matrix(3,0) = current_position(0) + 5.0 * direction(0);
+  trajectory_matrix(3,1) = current_position(1) + 5.0 * direction(1);
 }
