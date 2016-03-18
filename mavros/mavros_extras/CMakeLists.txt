@@ -133,7 +133,7 @@ add_library(mavros_extras
   src/plugins/cam_imu_sync.cpp
   #src/plugins/sonar_distance.cpp
   #src/plugins/sonar_receiver.cpp
-  #src/plugins/laser_distance.cpp
+  src/plugins/laser_distance.cpp
   #src/plugins/laser_receiver.cpp
   src/plugins/pump_controller.cpp
   src/plugins/pump_status.cpp
