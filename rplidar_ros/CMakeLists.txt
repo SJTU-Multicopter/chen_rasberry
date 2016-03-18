@@ -13,6 +13,16 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rosconsole
   sensor_msgs
+  message_generation
+)
+
+add_message_files(
+   FILES
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs  # Or other packages containing msgs
 )
 
 include_directories(
@@ -27,6 +37,13 @@ target_link_libraries(rplidarNode ${catkin_LIBRARIES})
 
 add_executable(rplidarNodeClient src/client.cpp)
 target_link_libraries(rplidarNodeClient ${catkin_LIBRARIES})
+
+add_executable(find_min_distance 
+  src/find_min_distance.cpp
+)
+target_link_libraries(find_min_distance 
+  ${catkin_LIBRARIES}
+)
 
 install(TARGETS rplidarNode rplidarNodeClient
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
