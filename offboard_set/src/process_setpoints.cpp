@@ -192,14 +192,10 @@ int main(int argc, char **argv)
         if(current_t < time2fly){
           processed_setpoint.px = p_optimal_calculate(0,Paras_matrix(0,0),Paras_matrix(0,1),Paras_matrix(0,2),current_t, start_pos[0]); 
           processed_setpoint.py = p_optimal_calculate(1,Paras_matrix(1,0),Paras_matrix(1,1),Paras_matrix(1,2),current_t, start_pos[1]);
-          processed_setpoint.ph = new_setpoint_ph;
-          processed_setpoint.yaw = new_setpoint_yaw;
         }
         else{
           processed_setpoint.px = new_setpoint_px;
           processed_setpoint.py = new_setpoint_py;
-          processed_setpoint.ph = new_setpoint_ph;
-          processed_setpoint.yaw = new_setpoint_yaw;
         }
       }
       else{//trapezoidal
@@ -226,14 +222,11 @@ int main(int argc, char **argv)
 //            j_y, a_y, v_y, p_y);
           processed_setpoint.px = p_x;
           processed_setpoint.py = p_y;
-          processed_setpoint.ph = new_setpoint_ph;
-          processed_setpoint.yaw = new_setpoint_yaw;
         }
         else{
           processed_setpoint.px = new_setpoint_px;
           processed_setpoint.py = new_setpoint_py;
-          processed_setpoint.ph = new_setpoint_ph;
-          processed_setpoint.yaw = new_setpoint_yaw;
+
         }
       }
 //      ROS_INFO("method: %d x_sp: %f y_sp: %f", method, processed_setpoint.px, processed_setpoint.py);
@@ -241,6 +234,12 @@ int main(int argc, char **argv)
 //      processed_setpoint.py = new_setpoint_py;
 //      processed_setpoint.ph = new_setpoint_ph;
 //      processed_setpoint.yaw = new_setpoint_yaw;
+      /*set height*/
+        if(laser_fly_height_enable && lidar_running) processed_setpoint.ph = new_setpoint_ph - laser_height + current_ph ;
+        else processed_setpoint.ph = new_setpoint_ph;
+
+        processed_setpoint.yaw = new_setpoint_yaw;
+
     }//end of if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
     current_t += 1.0 / LOOP_RATE_PLAN;
 
@@ -349,9 +348,10 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
   new_setpoint_px = msg.px;
   new_setpoint_py = msg.py;
 
-  if(laser_fly_height_enable && lidar_running) new_setpoint_ph = msg.ph - laser_height + current_ph ;
-  else new_setpoint_ph = msg.ph;
+  //if(laser_fly_height_enable && lidar_running) new_setpoint_ph = msg.ph - laser_height + current_ph ;
+  //else new_setpoint_ph = msg.ph;
 
+  new_setpoint_ph = msg.ph;
   new_setpoint_yaw = msg.yaw;
   ended_pos[0] = new_setpoint_px;
   ended_pos[1] = new_setpoint_py;
