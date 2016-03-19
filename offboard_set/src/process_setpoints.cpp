@@ -331,6 +331,8 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
       auto_avoid_processing = false;
       auto_avoid_count = 0;
     }
+    new_setpoint_ph = msg.ph;
+    new_setpoint_yaw = msg.yaw;
     
   }else{
   
@@ -345,6 +347,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     start_yaw = current_yaw;
     different_sp_rcv = true;
   }
+
   new_setpoint_px = msg.px;
   new_setpoint_py = msg.py;
 
