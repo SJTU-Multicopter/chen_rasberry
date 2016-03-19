@@ -124,8 +124,8 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
         
         if(send_counter == 0) //initial point
 	    {
-	    	  setpoint.px = route_point[send_counter][0]; 
-    	    setpoint.py = route_point[send_counter][1];
+	    	  setpoint.px = current_px; 
+    	    setpoint.py = current_py;
     	    setpoint.ph = route_point[send_counter][2];
           setpoint.yaw = current_yaw;
         }
