@@ -12,7 +12,6 @@
 #define Pi 3.1415926
 using namespace Eigen;
 
-
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
@@ -21,6 +20,7 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add b
 void chatterCallback_crop_distance(const std_msgs::Float32 &msg);  //add by CJ
 void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
 void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
+void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix);
 
 float posPlan(float max_jerk, float max_acc, float t, 
   int stage, const VectorXf& nodes_time, 
@@ -55,19 +55,26 @@ bool offboard_ready = false;
 bool obstacle_avoid_enable = false;  //add by CJ
 bool obstacle_avoid_height_enable = false;  //add by CJ
 bool obstacle_avoid_auto_enable = false;  //add by CJ
+bool auto_avoid_processing = false; //add by CJ
 bool laser_fly_height_enable = false;
 bool lidar_running = false;
 
 Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
+Vector3f local_pos_stop(0.0,0.0,0.0);  //add by CJ
+Vector3f body_pos_stop(0.0,0.0,0.0);  //add by CJ
+Matrix<float, 4, 2> obstacle_avoid_trajectory;  //add by CJ
+Vector3f next_pos(0.0,0.0,0.0);  //add by CJ
+
 
 int fly_direction = 0; //add by CJ
+int auto_avoid_count = 0;  //add by CJ
 float obstacle_distance = 0.0;  //add by CJ
 float obstacle_angle = 0.0;  //add by CJ
-float stop_px = 0.0;
-float stop_py = 0.0;
-float stop_ph = 0.0;
-float stop_yaw = 0.0;
+float stop_px = 0.0;  //add by CJ
+float stop_py = 0.0;  //add by CJ
+float stop_ph = 0.0;  //add by CJ
+float stop_yaw = 0.0;  //add by CJ
 
 int lidar_counter = 0;
 float laser_height_last = 0.0;
@@ -132,7 +139,7 @@ int main(int argc, char **argv)
   while (ros::ok())  
   {  
 
-  	if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
+  	if(new_setpoint_ph  > -1001.0 && new_setpoint_ph < -999.0)
     {
       processed_setpoint.px = current_px;
       processed_setpoint.py = current_py;
@@ -185,14 +192,10 @@ int main(int argc, char **argv)
         if(current_t < time2fly){
           processed_setpoint.px = p_optimal_calculate(0,Paras_matrix(0,0),Paras_matrix(0,1),Paras_matrix(0,2),current_t, start_pos[0]); 
           processed_setpoint.py = p_optimal_calculate(1,Paras_matrix(1,0),Paras_matrix(1,1),Paras_matrix(1,2),current_t, start_pos[1]);
-          processed_setpoint.ph = new_setpoint_ph;
-          processed_setpoint.yaw = new_setpoint_yaw;
         }
         else{
           processed_setpoint.px = new_setpoint_px;
           processed_setpoint.py = new_setpoint_py;
-          processed_setpoint.ph = new_setpoint_ph;
-          processed_setpoint.yaw = new_setpoint_yaw;
         }
       }
       else{//trapezoidal
@@ -219,14 +222,11 @@ int main(int argc, char **argv)
 //            j_y, a_y, v_y, p_y);
           processed_setpoint.px = p_x;
           processed_setpoint.py = p_y;
-          processed_setpoint.ph = new_setpoint_ph;
-          processed_setpoint.yaw = new_setpoint_yaw;
         }
         else{
           processed_setpoint.px = new_setpoint_px;
           processed_setpoint.py = new_setpoint_py;
-          processed_setpoint.ph = new_setpoint_ph;
-          processed_setpoint.yaw = new_setpoint_yaw;
+
         }
       }
 //      ROS_INFO("method: %d x_sp: %f y_sp: %f", method, processed_setpoint.px, processed_setpoint.py);
@@ -234,6 +234,12 @@ int main(int argc, char **argv)
 //      processed_setpoint.py = new_setpoint_py;
 //      processed_setpoint.ph = new_setpoint_ph;
 //      processed_setpoint.yaw = new_setpoint_yaw;
+      /*set height*/
+        if(laser_fly_height_enable && lidar_running) processed_setpoint.ph = new_setpoint_ph - laser_height + current_ph ;
+        else processed_setpoint.ph = new_setpoint_ph;
+
+        processed_setpoint.yaw = new_setpoint_yaw;
+
     }//end of if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
     current_t += 1.0 / LOOP_RATE_PLAN;
 
@@ -242,8 +248,12 @@ int main(int argc, char **argv)
     {
       if(obstacle_distance>90.0 && obstacle_distance<300.0)
       {
-        stop_px = current_px;
-        stop_py = current_py;
+        rotate(current_yaw, local_pos, body_pos);
+        body_pos_stop(0) = body_pos(0) - (300.0 - obstacle_distance) / 100.0f * cosf(obstacle_angle / 180.0 * Pi);
+        body_pos_stop(1) = body_pos(1) + (300.0 - obstacle_distance) / 100.0f * sinf(obstacle_angle / 180.0 * Pi);
+        rotate(-current_yaw, body_pos_stop, local_pos_stop);
+        stop_px = local_pos_stop(0);
+        stop_py = local_pos_stop(1);
         stop_ph = current_ph;
         stop_yaw = current_yaw;
 
@@ -286,6 +296,46 @@ int float_near(float a, float b, float dif)
 }
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg)
 {
+//add by CJ
+  if(auto_avoid_processing){
+    if(auto_avoid_count == 0){
+      obstacle_avoid_trajectory_generation(local_pos, next_pos, obstacle_avoid_trajectory);
+      auto_avoid_count++;
+      different_sp_rcv = true;
+    }
+    if(auto_avoid_count == 1){
+      different_sp_rcv = true;
+      start_pos[0] = obstacle_avoid_trajectory(0,0);
+      start_pos[1] = obstacle_avoid_trajectory(0,1);
+      ended_pos[0] = obstacle_avoid_trajectory(1,0);
+      ended_pos[1] = obstacle_avoid_trajectory(1,1);
+      auto_avoid_count++;
+    }
+    if(auto_avoid_count == 2){
+      different_sp_rcv = true;
+      start_pos[0] = obstacle_avoid_trajectory(1,0);
+      start_pos[1] = obstacle_avoid_trajectory(1,1);
+      ended_pos[0] = obstacle_avoid_trajectory(2,0);
+      ended_pos[1] = obstacle_avoid_trajectory(2,1);
+      auto_avoid_count++;
+    }
+    if(auto_avoid_count == 3){
+      different_sp_rcv = true;
+      start_pos[0] = obstacle_avoid_trajectory(2,0);
+      start_pos[1] = obstacle_avoid_trajectory(2,1);
+      ended_pos[0] = obstacle_avoid_trajectory(3,0);
+      ended_pos[1] = obstacle_avoid_trajectory(3,1);
+      auto_avoid_count++;
+    }
+    if(auto_avoid_count == 4){
+      auto_avoid_processing = false;
+      auto_avoid_count = 0;
+    }
+    new_setpoint_ph = msg.ph;
+    new_setpoint_yaw = msg.yaw;
+    
+  }else{
+  
   if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05) && float_near(msg.ph, new_setpoint_ph, 0.05)){
   //a same sp is rcved
 
@@ -297,16 +347,20 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     start_yaw = current_yaw;
     different_sp_rcv = true;
   }
+
   new_setpoint_px = msg.px;
   new_setpoint_py = msg.py;
 
-  if(laser_fly_height_enable && lidar_running) new_setpoint_ph = msg.ph - laser_height + current_ph ;
-  else new_setpoint_ph = msg.ph;
+  //if(laser_fly_height_enable && lidar_running) new_setpoint_ph = msg.ph - laser_height + current_ph ;
+  //else new_setpoint_ph = msg.ph;
 
+  new_setpoint_ph = msg.ph;
   new_setpoint_yaw = msg.yaw;
   ended_pos[0] = new_setpoint_px;
   ended_pos[1] = new_setpoint_py;
-//  ROS_INFO("yaw %f",new_setpoint_yaw);
+  next_pos(0) = msg.px;
+  next_pos(1) = msg.py;
+  }
 }
 
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
@@ -315,13 +369,17 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
   current_py = msg.pose.position.y;
   current_ph = msg.pose.position.z;
 
+  local_pos(0) = msg.pose.position.x;
+  local_pos(1) = msg.pose.position.y;
+  local_pos(2) = msg.pose.position.z;
+
   float q2=msg.pose.orientation.x;
   float q1=msg.pose.orientation.y;
   float q0=msg.pose.orientation.z;
   float q3=msg.pose.orientation.w;
   //message.local_position.orientation.pitch = (asin(2*q0*q2-2*q1*q3 ))*57.3;
   //message.local_position.orientation.roll  = (atan2(2*q2*q3 + 2*q0*q1, 1-2*q1*q1-2*q2*q2))*57.3;
-  current_yaw = (-atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1))+Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2
+  current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2
 //  ROS_INFO("current_yaw %f",current_yaw);
 }
 void chatterCallback_mode(const mavros::State &msg)
@@ -610,6 +668,10 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 {
   obstacle_distance = msg.min_distance;
   obstacle_angle = msg.angle;
+  if(obstacle_distance > 90.0 && obstacle_distance < 300.0){
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing)  auto_avoid_processing = true;
+    else auto_avoid_processing = false;
+  }
 }
 
 //Subscribe crop distance msg by CJ
@@ -643,6 +705,7 @@ void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg)
   fly_direction = msg.direction;
 }
 
+//rotate function
 void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
 {
   float sy = sinf(yaw);
@@ -660,4 +723,32 @@ void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
   data(2,2) = 1.0;
 
   output = data * input;
+}
+
+void obstacle_avoid_trajectory_generation(const Vector3f& current_position, const Vector3f& next_position, Matrix<float, 4, 2> trajectory_matrix)
+{
+  Vector3f obstacle_pos_body;
+  Vector3f obstacle_pos_local;
+  Vector3f direction;
+  Vector3f n_vector;
+
+  obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
+  obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
+  rotate(-current_yaw, obstacle_pos_body, obstacle_pos_local);
+
+  direction = next_position - current_position;
+  direction = direction.normalized();
+  n_vector(0) = direction(1);
+  n_vector(1) = -direction(0);
+  n_vector = n_vector.normalized();
+  if(n_vector.dot(obstacle_pos_local) >= 0) n_vector = -n_vector;
+
+  trajectory_matrix(0,0) = current_position(0);
+  trajectory_matrix(0,1) = current_position(1);
+  trajectory_matrix(1,0) = current_position(0) + 2 * n_vector(0);
+  trajectory_matrix(1,1) = current_position(1) + 2 * n_vector(1);
+  trajectory_matrix(2,0) = trajectory_matrix(1,0) + 5.0 * direction(0);
+  trajectory_matrix(2,1) = trajectory_matrix(1,1) + 5.0 * direction(1);
+  trajectory_matrix(3,0) = current_position(0) + 5.0 * direction(0);
+  trajectory_matrix(3,1) = current_position(1) + 5.0 * direction(1);
 }

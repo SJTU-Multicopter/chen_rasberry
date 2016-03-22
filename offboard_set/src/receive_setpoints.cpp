@@ -5,7 +5,6 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
 #include <math.h>
-
 #define CLOSE_DIST 0.8  //m
 #define Pi 3.14159265
 
@@ -88,7 +87,7 @@ int main(int argc, char **argv)
     }
     else 
     {   
-    	stop_setpoint.ph = -1.0;
+    	stop_setpoint.ph = -1000.0;
     	routepoint_pub.publish(stop_setpoint); //ph = -1.0, stop the UAV by send local position as setpoint
     }
     
@@ -125,8 +124,8 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
         
         if(send_counter == 0) //initial point
 	    {
-	    	  setpoint.px = route_point[send_counter][0]; 
-    	    setpoint.py = route_point[send_counter][1];
+	    	  setpoint.px = current_px; 
+    	    setpoint.py = current_py;
     	    setpoint.ph = route_point[send_counter][2];
           setpoint.yaw = current_yaw;
         }
@@ -148,7 +147,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 	float q1=msg.pose.orientation.y; 
 	float q0=msg.pose.orientation.z; 
 	float q3=msg.pose.orientation.w; 
-	current_yaw = (-atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1))+Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2 
+	current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2 
 
 }
 
