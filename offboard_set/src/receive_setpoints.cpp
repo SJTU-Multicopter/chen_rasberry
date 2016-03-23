@@ -5,7 +5,7 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
 #include <math.h>
-#define CLOSE_DIST 0.8  //m
+#define CLOSE_DIST 0.5  //m
 #define Pi 3.14159265
 
 void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg);
@@ -116,14 +116,23 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 {
 	if(offboard_ready)
 	{
-        if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y))
-		    close_counter += 1;
-	    else {
-		    close_counter = 0;
-	    }
+        if(send_counter > 0)
+        {
+          if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y))
+             close_counter += 1;
+          else 
+             close_counter = 0;  
+        }
+        else
+        {
+          if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y))
+             close_counter += 1;
+          else 
+             close_counter = 0; 
+        }      
         
         if(send_counter == 0) //initial point
-	    {
+	      {
 	    	  setpoint.px = current_px; 
     	    setpoint.py = current_py;
     	    setpoint.ph = route_point[send_counter][2];
