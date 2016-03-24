@@ -258,7 +258,7 @@ int main(int argc, char **argv)
     current_t += 1.0 / LOOP_RATE_PLAN;
 
     //obstacle avoidance by CJ
-    if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable)
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable && obstacle_lidar_running)
     {
       if(obstacle_distance>90.0 && obstacle_distance<300.0)
       {
@@ -738,7 +738,8 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
   obstacle_angle = msg.angle;
 
   if(obstacle_distance > 90.0 && obstacle_distance < 300.0){
-    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing)  auto_avoid_processing = true;
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && obstacle_lidar_running)  
+      auto_avoid_processing = true;
     else auto_avoid_processing = false;
   }
 
