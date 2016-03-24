@@ -20,7 +20,7 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add b
 void chatterCallback_crop_distance(const std_msgs::Float32 &msg);  //add by CJ
 void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
 void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
-void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix);
+void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2>& trajectory_matrix);
 
 float posPlan(float max_jerk, float max_acc, float t, 
   int stage, const VectorXf& nodes_time, 
@@ -798,7 +798,7 @@ void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
   output = data * input;
 }
 
-void obstacle_avoid_trajectory_generation(const Vector3f& current_position, const Vector3f& next_position, Matrix<float, 4, 2> trajectory_matrix)
+void obstacle_avoid_trajectory_generation(const Vector3f& current_position, const Vector3f& next_position, Matrix<float, 4, 2>& trajectory_matrix)
 {
   Vector3f obstacle_pos_body;
   Vector3f obstacle_pos_local;
