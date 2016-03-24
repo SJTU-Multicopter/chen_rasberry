@@ -313,6 +313,10 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
 //add by CJ
   if(auto_avoid_processing){
     if(auto_avoid_count == 0){
+      obstacle_avoid_trajectory << 0.0, 0.0,     
+     		  0.0, 0.0, 
+     		  0.0, 0.0, 
+     		  0.0, 0.0;
       obstacle_avoid_trajectory_generation(local_pos, next_pos, obstacle_avoid_trajectory);
       auto_avoid_count++;
     }
