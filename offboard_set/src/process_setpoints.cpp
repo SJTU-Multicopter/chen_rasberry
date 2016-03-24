@@ -58,7 +58,8 @@ bool obstacle_avoid_auto_enable = false;  //add by CJ
 bool auto_avoid_processing = false; //add by CJ
 bool fly_processing = false;  //add by CJ
 bool laser_fly_height_enable = false;
-bool lidar_running = false;
+bool height_lidar_running = false;
+bool obstacle_lidar_running = false;
 
 Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
@@ -99,6 +100,12 @@ float start_yaw = 0.0;
 bool different_sp_rcv = false;
 bool mode_change_flag_1 = false;
 bool mode_change_flag_2 = false;
+
+bool height_lidar_check_flag = false;
+bool obstacle_lidar_check_flag = false;
+int timer_counter = 0;
+
+float processed_setpoint_ph_last = -1000.0;
 
 mavros_extras::PositionSetpoint processed_setpoint;
 
@@ -203,7 +210,7 @@ int main(int argc, char **argv)
         
         if(stage < 8){
           if(current_t > nodes_t(stage)){
-            stage++;
+            stage++;height_lidar_check_flag
           }
           // float j = jerkPlan(MAX_j, stage);
           // float a = accPlan(MAX_j, max_a, current_t, stage, nodes_t);
@@ -236,8 +243,14 @@ int main(int argc, char **argv)
 //      processed_setpoint.ph = new_setpoint_ph;
 //      processed_setpoint.yaw = new_setpoint_yaw;
       /*set height*/
-        if(laser_fly_height_enable && lidar_running) processed_setpoint.ph = new_setpoint_ph - laser_height + current_ph ;
-        else processed_setpoint.ph = new_setpoint_ph;
+        if(laser_fly_height_enable && height_lidar_running) 
+        {
+          processed_setpoint.ph = new_setpoint_ph - laser_height + current_ph ;
+          processed_setpoint_ph_last = processed_setpoint.ph;
+        }
+        else if(laser_fly_height_enable && processed_setpoint_ph_last > -900)
+           processed_setpoint.ph = processed_setpoint_ph_last;
+        else processed_setpoint.ph = new_setpoint_ph; 
 
         processed_setpoint.yaw = new_setpoint_yaw;
 
@@ -378,7 +391,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
   new_setpoint_px = msg.px;
   new_setpoint_py = msg.py;
 
-  //if(laser_fly_height_enable && lidar_running) new_setpoint_ph = msg.ph - laser_height + current_ph ;
+  //if(laser_fly_height_enable && height_lidar_running) new_setpoint_ph = msg.ph - laser_height + current_ph ;
   //else new_setpoint_ph = msg.ph;
 
   new_setpoint_ph = msg.ph;
@@ -406,10 +419,11 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
   float q3=msg.pose.orientation.w;
   //message.local_position.orientation.pitch = (asin(2*q0*q2-2*q1*q3 ))*57.3;
   //message.local_position.orientation.roll  = (atan2(2*q2*q3 + 2*q0*q1, 1-2*q1*q1-2*q2*q2))*57.3;
-  current_yaw = (-atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1))+Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2
+  current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2
 //  ROS_INFO("current_yaw %f",current_yaw);
 }
-void chatterCallback_mode(const mavros::State &msg)
+
+void chatterCallback_mode(const mavros::State &msg) //from heartbeat, 5hz
 {
   if(msg.mode=="OFFBOARD") 
     {
@@ -427,6 +441,33 @@ void chatterCallback_mode(const mavros::State &msg)
   {
     different_sp_rcv =true;
     mode_change_flag_2 = false;
+  }
+
+  //use as timer, 1Hz
+  timer_counter += 1;
+  if(timer_counter > 5)
+  {
+    timer_counter = 0;
+
+    if(height_lidar_check_flag) 
+    {
+      height_lidar_check_flag = false;
+      height_lidar_running = true;
+    }
+    else
+    {
+      height_lidar_running = false;
+    }
+
+    if(obstacle_lidar_check_flag)
+    {
+      obstacle_lidar_check_flag = false;
+      obstacle_lidar_running = true;
+    }
+    else
+    {
+      obstacle_lidar_running = false;
+    } 
   }
 }
 
@@ -695,10 +736,13 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 {
   obstacle_distance = msg.min_distance;
   obstacle_angle = msg.angle;
+
   if(obstacle_distance > 90.0 && obstacle_distance < 300.0){
     if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing)  auto_avoid_processing = true;
     else auto_avoid_processing = false;
   }
+
+  obstacle_lidar_check_flag = true;
 }
 
 //Subscribe crop distance msg by CJ
@@ -716,14 +760,15 @@ void chatterCallback_crop_distance(const std_msgs::Float32 &msg)
   lidar_counter += 1;
   if(lidar_counter > 20)
   {
-    if(fabs(laser_height_last - laser_height)<0.00001) lidar_running = false;
-    else lidar_running = true;
+    if(fabs(laser_height_last - laser_height)<0.00001) height_lidar_running = false;
+    else height_lidar_running = true;
 
-    if(fabs(laser_height-6.0)<0.01)  lidar_running = true;
+    if(fabs(laser_height-6.0)<0.01)  height_lidar_running = true;
 
     laser_height_last = laser_height;
     lidar_counter = 0;
   }
+  height_lidar_check_flag = true;
 }
 
 //Subscribe fly direction by CJ
