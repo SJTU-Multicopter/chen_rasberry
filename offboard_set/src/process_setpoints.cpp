@@ -419,7 +419,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
   float q3=msg.pose.orientation.w;
   //message.local_position.orientation.pitch = (asin(2*q0*q2-2*q1*q3 ))*57.3;
   //message.local_position.orientation.roll  = (atan2(2*q2*q3 + 2*q0*q1, 1-2*q1*q1-2*q2*q2))*57.3;
-  current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2
+  current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, south:Pi, East:3Pi/2, West: Pi/2
 //  ROS_INFO("current_yaw %f",current_yaw);
 }
 
