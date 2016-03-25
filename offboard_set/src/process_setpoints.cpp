@@ -57,9 +57,11 @@ bool obstacle_avoid_height_enable = false;  //add by CJ
 bool obstacle_avoid_auto_enable = false;  //add by CJ
 bool auto_avoid_processing = false; //add by CJ
 bool fly_processing = false;  //add by CJ
+bool fly_direction_enable = false; //add by CJ
 bool laser_fly_height_enable = false;
 bool height_lidar_running = false;
 bool obstacle_lidar_running = false;
+
 
 Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
@@ -404,6 +406,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
   ended_pos[1] = new_setpoint_py;
   next_pos(0) = msg.px;
   next_pos(1) = msg.py;
+  next_pos(2) = 0.0;
   }
 }
 
@@ -415,7 +418,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 
   local_pos(0) = msg.pose.position.x;
   local_pos(1) = msg.pose.position.y;
-  local_pos(2) = msg.pose.position.z;
+  local_pos(2) = 0.0;
 
   float q2=msg.pose.orientation.x;
   float q1=msg.pose.orientation.y;
@@ -738,11 +741,23 @@ void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &
 //Subscribe obstacle msg by CJ
 void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 {
+  Vector3f obstacle_pos_body;
+  Vector3f obstacle_pos_local;
+  Vector3f direction;
+
   obstacle_distance = msg.min_distance;
   obstacle_angle = msg.angle;
 
+  direction = next_pos - local_pos;
+  obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
+  obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
+  obstacle_pos_body(2) = 0.0;
+  rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
+  if(direction.dot(obstacle_pos_local) > 0) fly_direction_enable = true;
+  else fly_direction_enable = false;
+
   if(obstacle_distance > 90.0 && obstacle_distance < 300.0){
-    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && obstacle_lidar_running)  
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && fly_direction_enable && obstacle_lidar_running)  
       auto_avoid_processing = true;
     else auto_avoid_processing = false;
   }
@@ -811,12 +826,14 @@ void obstacle_avoid_trajectory_generation(const Vector3f& current_position, cons
 
   obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
   obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
+  obstacle_pos_body(2) = 0.0;
   rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
 
   direction = next_position - current_position;
   direction = direction.normalized();
   n_vector(0) = direction(1);
   n_vector(1) = -direction(0);
+  n_vector(2) = 0.0;
   n_vector = n_vector.normalized();
   if(n_vector.dot(obstacle_pos_local) >= 0) n_vector = -n_vector;
 
