@@ -210,7 +210,7 @@ int main(int argc, char **argv)
         
         if(stage < 8){
           if(current_t > nodes_t(stage)){
-            stage++;height_lidar_check_flag
+            stage++;
           }
           // float j = jerkPlan(MAX_j, stage);
           // float a = accPlan(MAX_j, max_a, current_t, stage, nodes_t);
