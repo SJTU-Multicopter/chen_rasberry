@@ -56,6 +56,7 @@ bool obstacle_avoid_enable = false;  //add by CJ
 bool obstacle_avoid_height_enable = false;  //add by CJ
 bool obstacle_avoid_auto_enable = false;  //add by CJ
 bool auto_avoid_processing = false; //add by CJ
+bool manaul_avoid = false;  //add by CJ 
 bool fly_processing = false;  //add by CJ
 bool fly_direction_enable = false; //add by CJ
 bool laser_fly_height_enable = false;
@@ -260,10 +261,8 @@ int main(int argc, char **argv)
     current_t += 1.0 / LOOP_RATE_PLAN;
 
     //obstacle avoidance by CJ
-    if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable && obstacle_lidar_running)
+    if(manaul_avoid)
     {
-      if(obstacle_distance>90.0 && obstacle_distance<300.0)
-      {
         rotate(-current_yaw, local_pos, body_pos);
         body_pos_stop(0) = body_pos(0) - (300.0 - obstacle_distance) / 100.0f * cosf(obstacle_angle / 180.0 * Pi);
         body_pos_stop(1) = body_pos(1) + (300.0 - obstacle_distance) / 100.0f * sinf(obstacle_angle / 180.0 * Pi);
@@ -283,8 +282,7 @@ int main(int argc, char **argv)
           offboard_pub.publish(processed_setpoint);
           ros::spinOnce();  
           loop_rate.sleep();
-        }     
-      }  
+        }       
     }
 
     offboard_pub.publish(processed_setpoint);
@@ -333,7 +331,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
         new_setpoint_py = ended_pos[1];
         fly_processing = true;
       }else{
-        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6){
+        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
           auto_avoid_count++;
           fly_processing = false;
         }
@@ -350,7 +348,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
         new_setpoint_py = ended_pos[1];
         fly_processing = true;
       }else{
-        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6){
+        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
           auto_avoid_count++;
           fly_processing = false;
         }
@@ -367,7 +365,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
         new_setpoint_py = ended_pos[1];
         fly_processing = true;
       }else{
-        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6){
+        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
           auto_avoid_count++;
           fly_processing = false;
         }
@@ -404,9 +402,9 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
   new_setpoint_yaw = msg.yaw;
   ended_pos[0] = new_setpoint_px;
   ended_pos[1] = new_setpoint_py;
-  next_pos(0) = msg.px;
-  next_pos(1) = msg.py;
-  next_pos(2) = 0.0;
+  next_pos(0) = msg.px;    //add by CJ
+  next_pos(1) = msg.py;    //add by CJ
+  next_pos(2) = 0.0;       //add by CJ
   }
 }
 
@@ -416,9 +414,9 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
   current_py = msg.pose.position.y;
   current_ph = msg.pose.position.z;
 
-  local_pos(0) = msg.pose.position.x;
-  local_pos(1) = msg.pose.position.y;
-  local_pos(2) = 0.0;
+  local_pos(0) = msg.pose.position.x;  //add by CJ
+  local_pos(1) = msg.pose.position.y;  //add by CJ
+  local_pos(2) = 0.0;                  //add by CJ
 
   float q2=msg.pose.orientation.x;
   float q1=msg.pose.orientation.y;
@@ -760,6 +758,11 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
     if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && fly_direction_enable && obstacle_lidar_running)  
       auto_avoid_processing = true;
     else auto_avoid_processing = false;
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable && fly_direction_enable && obstacle_lidar_running)
+    	manaul_avoid = true;
+    else manaul_avoid = false;
+  }else{
+  	manual_avoid = false;
   }
 
   obstacle_lidar_check_flag = true;
