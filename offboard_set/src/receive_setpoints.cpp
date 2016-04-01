@@ -35,6 +35,8 @@ int send_counter = 0;
 
 bool offboard_ready = false;
 
+bool take_off_height_init = true;
+
 int main(int argc, char **argv)  
 {  
  
@@ -125,17 +127,23 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
         }
         else
         {
-          if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y))
+          if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y)&&near_bool(setpoint.ph, msg.pose.position.z))
              close_counter += 1;
           else 
              close_counter = 0; 
         }      
         
-        if(send_counter == 0) //initial point
+        if(send_counter == 0) //take off point
 	      {
 	    	  setpoint.px = current_px; 
     	    setpoint.py = current_py;
-    	    setpoint.ph = route_point[send_counter][2];
+          //take off height
+          if(take_off_height_init) setpoint.ph = 0.0;
+    	    else 
+          {
+            if(setpoint.ph < route_point[send_counter][2]) setpoint.ph += 0.02;
+            take_off_height_init = false;
+          }
           setpoint.yaw = current_yaw;
         }
 
@@ -149,6 +157,8 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
           setpoint.yaw = route_yaw;
 	    }
 	}
+
+  else take_off_height_init = true;
 
 	current_px = msg.pose.position.x;
 	current_py = msg.pose.position.y;
