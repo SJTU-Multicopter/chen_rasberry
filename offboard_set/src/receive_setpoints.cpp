@@ -4,19 +4,23 @@
 #include "mavros_extras/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
+#include "std_msgs/Float32.h"
 #include <math.h>
-#define CLOSE_DIST 0.5  //m
+#define NEAR_DIST 0.5  //m
+#define CLOSE_DIST 0.2 
 #define Pi 3.14159265
 
 void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg);
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
+void chatterCallback_crop_distance(const std_msgs::Float32 &msg); 
 
 mavros_extras::PositionSetpoint setpoint;//(px,py,ph,yaw)
 mavros_extras::PositionSetpoint stop_setpoint;//(px,py,ph,yaw)
 mavros_extras::OffboardRoutePointsConfirm route_point_confirm;
 
 bool near_bool(float x, float y);
+bool close_bool(float x, float y);
 
 float route_point[1002][3];//(x,y,h)
 float route_yaw = 0.0;
@@ -28,6 +32,7 @@ float start_py = 0.0;
 float current_px = 0.0;
 float current_py = 0.0;
 float current_yaw = 0.0;
+float current_lidar_ph = 0.0;
 int total_num = -1;
 int msg_seq = -1;
 int close_counter = 0;
@@ -50,6 +55,7 @@ int main(int argc, char **argv)
   ros::Subscriber setpoint_sub = nh.subscribe("/mavros/offboard_route_points_receiver/offboard_route_points_receiver", 5, chatterCallback_route_points);
   ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
   ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 1,chatterCallback_mode);
+  ros::Subscriber crop_distance_sub = nh.subscribe("/crop_dist",1,chatterCallback_crop_distance);
 
   ros::Rate loop_rate(10);
 
@@ -127,7 +133,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
         }
         else
         {
-          if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y)&&near_bool(setpoint.ph, msg.pose.position.z))
+          if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y)&&close_bool(setpoint.ph, current_lidar_ph))
              close_counter += 1;
           else 
              close_counter = 0; 
@@ -138,16 +144,20 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 	    	  setpoint.px = current_px; 
     	    setpoint.py = current_py;
           //take off height
-          if(take_off_height_init) setpoint.ph = 0.0;
+          if(take_off_height_init) 
+          {
+            setpoint.ph = 0.0;
+            take_off_height_init = false;
+          }
     	    else 
           {
-            if(setpoint.ph < route_point[send_counter][2]) setpoint.ph += 0.02;
-            take_off_height_init = false;
+            if(setpoint.ph < route_point[0][2]) setpoint.ph += 0.02;
+            
           }
           setpoint.yaw = current_yaw;
         }
 
-	    if(close_counter >= 1){
+	    if(close_counter > 1){
           close_counter = 0;
             //set new route point
           send_counter += 1;
@@ -178,9 +188,21 @@ void chatterCallback_mode(const mavros::State &msg)//模式
     //ROS_INFO("offboard ready!");
 }
 
+void chatterCallback_crop_distance(const std_msgs::Float32 &msg)
+{
+  current_lidar_ph = msg.data;
+}
+
 bool near_bool(float x, float y)
 {
-	if(x-y< CLOSE_DIST && x-y> -CLOSE_DIST)
+	if(x-y< NEAR_DIST && x-y> -NEAR_DIST)
 		return true;
 	else return false;
+}
+
+bool close_bool(float x, float y)
+{
+  if(x-y< CLOSE_DIST && x-y> -CLOSE_DIST)
+    return true;
+  else return false;
 }
