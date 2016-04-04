@@ -325,13 +325,13 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     }
     if(auto_avoid_count == 1){
       if(!fly_processing){
-        different_sp_rcv = true;
         start_pos[0] = current_px;
         start_pos[1] = current_py;
         ended_pos[0] = obstacle_avoid_trajectory(1,0);
         ended_pos[1] = obstacle_avoid_trajectory(1,1);
         new_setpoint_px = ended_pos[0];
         new_setpoint_py = ended_pos[1];
+        different_sp_rcv = true;
         fly_processing = true;
       }
       else{
@@ -343,13 +343,13 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     }
     if(auto_avoid_count == 2){
       if(!fly_processing){
-        different_sp_rcv = true;
-        start_pos[0] = current_px;
-        start_pos[1] = current_py;
+        start_pos[0] = obstacle_avoid_trajectory(1,0);
+        start_pos[1] = obstacle_avoid_trajectory(1,1);
         ended_pos[0] = obstacle_avoid_trajectory(2,0);
         ended_pos[1] = obstacle_avoid_trajectory(2,1);
         new_setpoint_px = ended_pos[0];
         new_setpoint_py = ended_pos[1];
+        different_sp_rcv = true;
         fly_processing = true;
       }else{
         if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
@@ -360,13 +360,13 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     }
     if(auto_avoid_count == 3){
       if(!fly_processing){
-        different_sp_rcv = true;
-        start_pos[0] = current_px;
-        start_pos[1] = current_py;
+        start_pos[0] = obstacle_avoid_trajectory(2,0);
+        start_pos[1] = obstacle_avoid_trajectory(2,1);
         ended_pos[0] = obstacle_avoid_trajectory(3,0);
         ended_pos[1] = obstacle_avoid_trajectory(3,1);
         new_setpoint_px = ended_pos[0];
         new_setpoint_py = ended_pos[1];
+        different_sp_rcv = true;
         fly_processing = true;
       }else{
         if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
