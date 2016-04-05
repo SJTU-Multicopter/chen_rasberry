@@ -490,7 +490,7 @@ void chatterCallback_mode(const mavros::State &msg) //from heartbeat, 5hz
 }
 
 
-void trajectory_Paras_generation_i(int num, float p0, float pf, float T, Matrix<float, 3, 3>& Paras_matrix)//num 0,1,2 reoresents  x, y, z
+void trajectory_Paras_generation_i(int num, float p0, float pf, float T, Matrix<float, 3, 3>& Paras_matrix)//num 0,1,2 represents  x, y, z
 {
   float v0 = 0, a0 = 0, vf = 0, af = 0;
   MatrixXd delt_s(3,1);

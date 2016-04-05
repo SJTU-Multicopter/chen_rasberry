@@ -157,7 +157,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
           setpoint.yaw = current_yaw;
         }
 
-	    if(close_counter > 1){
+	    if(close_counter >= 1){
           close_counter = 0;
             //set new route point
           send_counter += 1;
