@@ -7,7 +7,7 @@
 #include "std_msgs/Float32.h"
 #include <math.h>
 #define NEAR_DIST 0.5  //m
-#define CLOSE_DIST 0.2 
+#define CLOSE_DIST 0.5 
 #define Pi 3.14159265
 
 void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg);
@@ -146,7 +146,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
           //take off height
           if(take_off_height_init) 
           {
-            setpoint.ph = 0.0;
+            setpoint.ph = current_lidar_ph;
             take_off_height_init = false;
           }
     	    else 
