@@ -154,7 +154,7 @@ int main(int argc, char **argv)
       
       //take off height set
  
-      if(new_setpoint_ph - standard_height.data > 0.2) processed_setpoint.ph = current_ph + 0.3;
+      if(new_setpoint_ph - standard_height.data > 0.3) processed_setpoint.ph = current_ph + 0.2;
       else if(standard_height.data - new_setpoint_ph > 0.3) processed_setpoint.ph = current_ph - 0.1;
       else processed_setpoint.ph = standard_height.data;
 
