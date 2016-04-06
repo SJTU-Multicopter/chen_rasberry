@@ -4,13 +4,15 @@
 #include "mavros_extras/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "mavros/State.h"
+#include "std_msgs/Float32.h"
 #include <math.h>
-#define CLOSE_DIST 0.8  //m
+#define CLOSE_DIST 0.6  //m
 #define Pi 3.14159265
 
 void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg);
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
+void chatterCallback_standard_height(const std_msgs::Float32);
 
 mavros_extras::PositionSetpoint setpoint;//(px,py,ph,yaw)
 mavros_extras::PositionSetpoint stop_setpoint;//(px,py,ph,yaw)
@@ -24,6 +26,8 @@ float route_yaw = 0.0;
 //start px, py to correct setpoint, especially when the UAV get route points from GS while flying
 float start_px = 0.0;
 float start_py = 0.0;
+
+float standard_height = 2.0;
 
 float current_px = 0.0;
 float current_py = 0.0;
@@ -48,6 +52,7 @@ int main(int argc, char **argv)
   ros::Subscriber setpoint_sub = nh.subscribe("/mavros/offboard_route_points_receiver/offboard_route_points_receiver", 5, chatterCallback_route_points);
   ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
   ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 1,chatterCallback_mode);
+  ros::Subscriber standard_height_sub = nh.subscribe("/offboard/standard_height", 2,chatterCallback_standard_height);
 
   ros::Rate loop_rate(10);
 
@@ -116,19 +121,27 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 {
 	if(offboard_ready)
 	{
-        if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y))
-		    close_counter += 1;
-	    else {
-		    close_counter = 0;
-	    }
-        
+             
         if(send_counter == 0) //initial point
 	    {
 	    	  setpoint.px = current_px; 
     	    setpoint.py = current_py;
     	    setpoint.ph = route_point[send_counter][2];
-          setpoint.yaw = current_yaw;
-        }
+          setpoint.yaw = -120;  //<-100, mark the first take off point,wont get into trajactory generate in process_setpoints.cpp
+          if(near_bool(setpoint.ph, standard_height))
+            close_counter += 1;
+          else {
+            close_counter = 0;
+          }       
+      }
+      else
+      {
+          if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y))
+            close_counter += 1;
+          else {
+            close_counter = 0;
+          }
+      }
 
 	    if(close_counter >= 1){
           close_counter = 0;
@@ -154,9 +167,14 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 
 void chatterCallback_mode(const mavros::State &msg)//模式
 {
-    if(msg.mode=="OFFBOARD") offboard_ready=true;
-    else offboard_ready=false;
-    //ROS_INFO("offboard ready!");
+  if(msg.mode=="OFFBOARD") offboard_ready=true;
+  else offboard_ready=false;
+  //ROS_INFO("offboard ready!");
+}
+
+void chatterCallback_standard_height(const std_msgs::Float32 &msg)
+{
+  standard_height = msg.data;
 }
 
 bool near_bool(float x, float y)

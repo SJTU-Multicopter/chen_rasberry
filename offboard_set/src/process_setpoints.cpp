@@ -10,6 +10,7 @@
 #include "std_msgs/String.h"   //new
 #include "std_msgs/Float32.h"
 #define Pi 3.1415926
+#define LOOP_RATE_PLAN 10
 using namespace Eigen;
 
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
@@ -100,6 +101,7 @@ bool mode_change_flag_1 = false;
 bool mode_change_flag_2 = false;
 
 mavros_extras::PositionSetpoint processed_setpoint;
+std_msgs::Float32 standard_height;
 
 int main(int argc, char **argv)  
 {  
@@ -109,6 +111,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;  
   
   ros::Publisher offboard_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/setpoints_local", 2);  
+  ros::Publisher standard_height_pub = nh.advertise<std_msgs::Float32>("offboard/standard_height", 2);
 
   ros::Subscriber setpoint_sub = nh.subscribe("/offboard/setpoints_raw", 2, chatterCallback_receive_setpoint_raw);
   ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
@@ -117,7 +120,7 @@ int main(int argc, char **argv)
   ros::Subscriber obstacle_sub = nh.subscribe("/laser_send",1,chatterCallback_obstacle);
   ros::Subscriber crop_distance_sub = nh.subscribe("/crop_dist",1,chatterCallback_crop_distance);
   ros::Subscriber fly_direction_sub = nh.subscribe("/offboard/direction", 1,chatterCallback_fly_direction);
-  #define LOOP_RATE_PLAN 10
+  
   ros::Rate loop_rate(LOOP_RATE_PLAN);
 
   float MAX_v = 3.0, MAX_pitch_deg = 20.0, MAX_j = 2.5;
@@ -138,8 +141,25 @@ int main(int argc, char **argv)
   Matrix<float, 3, 3> Paras_matrix(3,3);
   while (ros::ok())  
   {  
+    //tell the standard height, measured by barometer or rplidar
+    if(laser_fly_height_enable && lidar_running) standard_height.data = laser_height;
+    else standard_height.data = current_ph;
+    standard_height_pub.publish(standard_height);
 
-  	if(new_setpoint_ph  > -1001.0 && new_setpoint_ph < -999.0)
+  	if(new_setpoint_yaw < -100)
+    {
+      processed_setpoint.px = current_px;
+      processed_setpoint.py = current_py;
+      processed_setpoint.yaw = current_yaw;
+      
+      //take off height set
+ 
+      if(new_setpoint_ph - standard_height.data > 0.2) processed_setpoint.ph = current_ph + 0.3;
+      else if(standard_height.data - new_setpoint_ph > 0.3) processed_setpoint.ph = current_ph - 0.1;
+      else processed_setpoint.ph = standard_height.data;
+
+    }
+    else if(new_setpoint_ph  > -1001.0 && new_setpoint_ph < -999.0)
     {
       processed_setpoint.px = current_px;
       processed_setpoint.py = current_py;
@@ -165,9 +185,7 @@ int main(int argc, char **argv)
         avrg_vx = (ended_pos[0] - current_px) / time2fly;
         avrg_vy = (ended_pos[1] - current_py) / time2fly;
         
-        current_t = 0;
-
-        
+        current_t = 0;     
 
         stage = 1;
         nodes_t = VectorXf::Zero(8);
