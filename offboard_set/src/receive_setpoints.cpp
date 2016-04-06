@@ -158,6 +158,27 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
              close_counter = 0; 
         }      
         
+<<<<<<< HEAD
+=======
+        if(send_counter == 0) //take off point
+	      {
+	    	  setpoint.px = current_px; 
+    	    setpoint.py = current_py;
+          //take off height
+          if(take_off_height_init) 
+          {
+            setpoint.ph = current_lidar_ph;
+            take_off_height_init = false;
+          }
+    	    else 
+          {
+            if(setpoint.ph < route_point[0][2]) setpoint.ph += 0.02;
+            
+          }
+          setpoint.yaw = current_yaw;
+        }
+
+>>>>>>> d37a8497c74328375a9b3aafcc925cfa1f9ae9a2
 	    if(close_counter >= 1){
           close_counter = 0;
             //set new route point
