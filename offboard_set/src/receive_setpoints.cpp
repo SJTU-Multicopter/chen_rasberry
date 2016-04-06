@@ -12,7 +12,7 @@
 void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg);
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
 void chatterCallback_mode(const mavros::State &msg);
-void chatterCallback_standard_height(const std_msgs::Float32);
+void chatterCallback_standard_height(const std_msgs::Float32 &msg);
 
 mavros_extras::PositionSetpoint setpoint;//(px,py,ph,yaw)
 mavros_extras::PositionSetpoint stop_setpoint;//(px,py,ph,yaw)
