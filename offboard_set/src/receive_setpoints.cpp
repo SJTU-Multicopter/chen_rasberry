@@ -7,7 +7,7 @@
 #include "std_msgs/Float32.h"
 #include <math.h>
 #define NEAR_DIST 0.5  //m
-#define CLOSE_DIST 0.2 
+#define CLOSE_DIST 0.5 
 #define Pi 3.14159265
 
 void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg);
@@ -124,6 +124,25 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 {
 	if(offboard_ready)
 	{
+        
+        if(send_counter == 0) //take off point
+	      {    	  
+          //take off height
+          if(take_off_height_init) 
+          {
+            setpoint.ph = current_lidar_ph;
+            setpoint.px = current_px; 
+            setpoint.py = current_py;
+            setpoint.yaw = current_yaw;
+            take_off_height_init = false;
+          }
+    	    else 
+          {
+            if(setpoint.ph < route_point[0][2]) setpoint.ph += 0.02;           
+          }
+          
+        }
+      
         if(send_counter > 0)
         {
           if(near_bool(setpoint.px, msg.pose.position.x)&&near_bool(setpoint.py, msg.pose.position.y))
@@ -139,24 +158,6 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
              close_counter = 0; 
         }      
         
-        if(send_counter == 0) //take off point
-	      {
-	    	  setpoint.px = current_px; 
-    	    setpoint.py = current_py;
-          //take off height
-          if(take_off_height_init) 
-          {
-            setpoint.ph = 0.0;
-            take_off_height_init = false;
-          }
-    	    else 
-          {
-            if(setpoint.ph < route_point[0][2]) setpoint.ph += 0.02;
-            
-          }
-          setpoint.yaw = current_yaw;
-        }
-
 	    if(close_counter >= 1){
           close_counter = 0;
             //set new route point

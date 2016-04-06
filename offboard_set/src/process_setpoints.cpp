@@ -388,7 +388,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
   else{
     if(offboard_ready)
     {
-      if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05) && float_near(msg.ph, new_setpoint_ph, 0.05))
+      if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05))// && float_near(msg.ph, new_setpoint_ph, 0.05))
       {
         //a same sp is rcved      
       }
