@@ -354,31 +354,39 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     
   }else{
   
-  if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05) && float_near(msg.ph, new_setpoint_ph, 0.05)){
-  //a same sp is rcved
+   if(offboard_ready)
+    {
+      if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05))// && float_near(msg.ph, new_setpoint_ph, 0.05))
+      {
+        //a same sp is rcved      
+      }
+      else{//a new sp
+        start_pos[0] = ended_pos[0];
+        start_pos[1] = ended_pos[1];
+        ended_pos[0] = msg.px;
+        ended_pos[1] = msg.py;
+        //start_ph = current_ph;
+        //start_yaw = current_yaw;
+        different_sp_rcv = true;
+      }
+    }
+    else//not offboard ready
+    {
+      start_pos[0] = current_px;
+      start_pos[1] = current_py;
+      ended_pos[0] = current_px;
+      ended_pos[1] = current_py;
+    }    
+    new_setpoint_px = msg.px;
+    new_setpoint_py = msg.py;
 
-  }
-  else{//a new sp
-    start_pos[0] = current_px;
-    start_pos[1] = current_py;
-    start_ph = current_ph;
-    start_yaw = current_yaw;
-    different_sp_rcv = true;
-  }
-
-  new_setpoint_px = msg.px;
-  new_setpoint_py = msg.py;
-
-  //if(laser_fly_height_enable && lidar_running) new_setpoint_ph = msg.ph - laser_height + current_ph ;
-  //else new_setpoint_ph = msg.ph;
-
-  new_setpoint_ph = msg.ph;
-  new_setpoint_yaw = msg.yaw;
-  ended_pos[0] = new_setpoint_px;
-  ended_pos[1] = new_setpoint_py;
-  next_pos(0) = msg.px;
-  next_pos(1) = msg.py;
-  }
+    new_setpoint_ph = msg.ph;
+    new_setpoint_yaw = msg.yaw;
+    
+    next_pos(0) = msg.px;    //add by CJ
+    next_pos(1) = msg.py;    //add by CJ
+    next_pos(2) = 0.0;       //add by CJ
+  }//offboard ready else end
 }
 
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
