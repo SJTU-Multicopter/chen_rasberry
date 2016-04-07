@@ -99,6 +99,7 @@ float start_pos[2] = {0.0,0.0};
 float ended_pos[2] = {0.0,0.0};
 float start_ph = 0.0;
 float start_yaw = 0.0;
+bool start_bool = true;
 
 bool different_sp_rcv = false;
 bool mode_change_flag_1 = false;
@@ -151,9 +152,16 @@ int main(int argc, char **argv)
 
   	if(new_setpoint_yaw < -100)
     {
+      if(start_bool) 
+      {
+        start_yaw = current_yaw;
+        start_bool = false;
+      }
+
       processed_setpoint.px = current_px;
       processed_setpoint.py = current_py;
-      processed_setpoint.yaw = current_yaw;
+      processed_setpoint.yaw = start_yaw;
+
       start_pos[0] = current_px;
       start_pos[1] = current_py;
       ended_pos[0] = current_px;
@@ -172,6 +180,7 @@ int main(int argc, char **argv)
       processed_setpoint.ph = current_ph;
       processed_setpoint.yaw = current_yaw;
 
+      start_bool = true;
     }
     else if(new_setpoint_ph < -1994)
     {
@@ -179,6 +188,7 @@ int main(int argc, char **argv)
       processed_setpoint.py = new_setpoint_py;
       processed_setpoint.ph = new_setpoint_ph;
       processed_setpoint.yaw = new_setpoint_yaw;
+      start_bool = true;
     }
     else  //ph==-2 included, this will process in publish_setpoints.cpp
     {
