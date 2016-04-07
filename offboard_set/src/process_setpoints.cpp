@@ -103,7 +103,6 @@ float start_yaw = 0.0;
 bool different_sp_rcv = false;
 bool mode_change_flag_1 = false;
 bool mode_change_flag_2 = false;
-
 mavros_extras::PositionSetpoint processed_setpoint;
 std_msgs::Float32 standard_height;
 
@@ -155,11 +154,14 @@ int main(int argc, char **argv)
       processed_setpoint.px = current_px;
       processed_setpoint.py = current_py;
       processed_setpoint.yaw = current_yaw;
-      
+      start_pos[0] = current_px;
+      start_pos[1] = current_py;
+      ended_pos[0] = current_px;
+      ended_pos[1] = current_py;
       //take off height set
  
-      if(new_setpoint_ph - standard_height.data > 0.3) processed_setpoint.ph = current_ph + 0.2;
-      else if(standard_height.data - new_setpoint_ph > 0.3) processed_setpoint.ph = current_ph - 0.1;
+      if(new_setpoint_ph - standard_height.data > 0.3) processed_setpoint.ph = current_ph + 0.8;
+      else if(standard_height.data - new_setpoint_ph > 0.3) processed_setpoint.ph = current_ph - 0.4;
       else processed_setpoint.ph = standard_height.data;
 
     }
@@ -198,9 +200,7 @@ int main(int argc, char **argv)
         float dx = ended_pos[0] - start_pos[0];
         float dy = ended_pos[1] - start_pos[1];
         theta = atan2(dy, dx);
-        method = trapezoidalTraj(0, length, 
-            MAX_v, MAX_pitch_deg, MAX_j,
-            nodes_t, nodes_v, nodes_p, &max_a);
+        method = trapezoidalTraj(0, length, MAX_v, MAX_pitch_deg, MAX_j,nodes_t, nodes_v, nodes_p, &max_a);
         std::cout << "\nnodes_t:\n" << nodes_t << std::endl;
         std::cout << "\nnodes_p:\n" << nodes_p << std::endl;
         std::cout << "\nnodes_v:\n" << nodes_v << std::endl;
@@ -357,8 +357,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     new_setpoint_yaw = msg.yaw;
     
   }else{
-  
-   if(offboard_ready)
+    if(offboard_ready)
     {
       if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05))// && float_near(msg.ph, new_setpoint_ph, 0.05))
       {
