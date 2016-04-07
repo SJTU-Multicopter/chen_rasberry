@@ -57,6 +57,9 @@ bool obstacle_avoid_enable = false;  //add by CJ
 bool obstacle_avoid_height_enable = false;  //add by CJ
 bool obstacle_avoid_auto_enable = false;  //add by CJ
 bool auto_avoid_processing = false; //add by CJ
+bool manual_avoid = false;  //add by CJ 
+bool fly_processing = false;  //add by CJ
+bool fly_direction_enable = false; //add by CJ
 bool laser_fly_height_enable = false;
 bool height_lidar_running = false;
 bool obstacle_lidar_running = false;
@@ -276,11 +279,9 @@ int main(int argc, char **argv)
     current_t += 1.0 / LOOP_RATE_PLAN;
 
     //obstacle avoidance by CJ
-    if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable)
+    if(manual_avoid)
     {
-      if(obstacle_distance>90.0 && obstacle_distance<300.0)
-      {
-        rotate(current_yaw, local_pos, body_pos);
+        rotate(-current_yaw, local_pos, body_pos);
         body_pos_stop(0) = body_pos(0) - (300.0 - obstacle_distance) / 100.0f * cosf(obstacle_angle / 180.0 * Pi);
         body_pos_stop(1) = body_pos(1) + (300.0 - obstacle_distance) / 100.0f * sinf(obstacle_angle / 180.0 * Pi);
         rotate(-current_yaw, body_pos_stop, local_pos_stop);
@@ -299,8 +300,7 @@ int main(int argc, char **argv)
           offboard_pub.publish(processed_setpoint);
           ros::spinOnce();  
           loop_rate.sleep();
-        }     
-      }  
+        }       
     }
 
     offboard_pub.publish(processed_setpoint);
@@ -331,36 +331,67 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
 //add by CJ
   if(auto_avoid_processing){
     if(auto_avoid_count == 0){
+      obstacle_avoid_trajectory << 0.0, 0.0,     
+          0.0, 0.0, 
+          0.0, 0.0, 
+          0.0, 0.0;
       obstacle_avoid_trajectory_generation(local_pos, next_pos, obstacle_avoid_trajectory);
       auto_avoid_count++;
-      different_sp_rcv = true;
     }
     if(auto_avoid_count == 1){
-      different_sp_rcv = true;
-      start_pos[0] = obstacle_avoid_trajectory(0,0);
-      start_pos[1] = obstacle_avoid_trajectory(0,1);
-      ended_pos[0] = obstacle_avoid_trajectory(1,0);
-      ended_pos[1] = obstacle_avoid_trajectory(1,1);
-      auto_avoid_count++;
+      if(!fly_processing){
+        start_pos[0] = current_px;
+        start_pos[1] = current_py;
+        ended_pos[0] = obstacle_avoid_trajectory(1,0);
+        ended_pos[1] = obstacle_avoid_trajectory(1,1);
+        new_setpoint_px = ended_pos[0];
+        new_setpoint_py = ended_pos[1];
+        different_sp_rcv = true;
+        fly_processing = true;
+      }
+      else{
+        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
+          auto_avoid_count++;
+          fly_processing = false;
+        }
+      }  
     }
     if(auto_avoid_count == 2){
-      different_sp_rcv = true;
-      start_pos[0] = obstacle_avoid_trajectory(1,0);
-      start_pos[1] = obstacle_avoid_trajectory(1,1);
-      ended_pos[0] = obstacle_avoid_trajectory(2,0);
-      ended_pos[1] = obstacle_avoid_trajectory(2,1);
-      auto_avoid_count++;
+      if(!fly_processing){
+        start_pos[0] = obstacle_avoid_trajectory(1,0);
+        start_pos[1] = obstacle_avoid_trajectory(1,1);
+        ended_pos[0] = obstacle_avoid_trajectory(2,0);
+        ended_pos[1] = obstacle_avoid_trajectory(2,1);
+        new_setpoint_px = ended_pos[0];
+        new_setpoint_py = ended_pos[1];
+        different_sp_rcv = true;
+        fly_processing = true;
+      }else{
+        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
+          auto_avoid_count++;
+          fly_processing = false;
+        }
+      }  
     }
     if(auto_avoid_count == 3){
-      different_sp_rcv = true;
-      start_pos[0] = obstacle_avoid_trajectory(2,0);
-      start_pos[1] = obstacle_avoid_trajectory(2,1);
-      ended_pos[0] = obstacle_avoid_trajectory(3,0);
-      ended_pos[1] = obstacle_avoid_trajectory(3,1);
-      auto_avoid_count++;
+      if(!fly_processing){
+        start_pos[0] = obstacle_avoid_trajectory(2,0);
+        start_pos[1] = obstacle_avoid_trajectory(2,1);
+        ended_pos[0] = obstacle_avoid_trajectory(3,0);
+        ended_pos[1] = obstacle_avoid_trajectory(3,1);
+        new_setpoint_px = ended_pos[0];
+        new_setpoint_py = ended_pos[1];
+        different_sp_rcv = true;
+        fly_processing = true;
+      }else{
+        if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
+          auto_avoid_count++;
+          fly_processing = false;
+        }
+      } 
     }
     if(auto_avoid_count == 4){
-      auto_avoid_processing = false;
+      auto_avoid_processing = false;    
       auto_avoid_count = 0;
     }
     new_setpoint_ph = msg.ph;
@@ -408,9 +439,9 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
   current_py = msg.pose.position.y;
   current_ph = msg.pose.position.z;
 
-  local_pos(0) = msg.pose.position.x;
-  local_pos(1) = msg.pose.position.y;
-  local_pos(2) = msg.pose.position.z;
+  local_pos(0) = msg.pose.position.x;  //add by CJ
+  local_pos(1) = msg.pose.position.y;  //add by CJ
+  local_pos(2) = 0.0;  //add by CJ
 
   float q2=msg.pose.orientation.x;
   float q1=msg.pose.orientation.y;
@@ -733,12 +764,34 @@ void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &
 //Subscribe obstacle msg by CJ
 void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 {
+  Vector3f obstacle_pos_body;
+  Vector3f obstacle_pos_local;
+  Vector3f direction;
+
   obstacle_distance = msg.min_distance;
   obstacle_angle = msg.angle;
-  if(obstacle_distance > 90.0 && obstacle_distance < 300.0){
-    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing)  auto_avoid_processing = true;
-    else auto_avoid_processing = false;
+
+  direction = next_pos - local_pos;
+  obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
+  obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
+  obstacle_pos_body(2) = 0.0;
+  rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
+  if(direction.dot(obstacle_pos_local) > 0) fly_direction_enable = true;
+  else fly_direction_enable = false;
+
+  if(obstacle_distance > 90.0 && obstacle_distance < 300.0)
+  {
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && fly_direction_enable && obstacle_lidar_running)  
+      auto_avoid_processing = true;
+
+    if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable && fly_direction_enable && obstacle_lidar_running)
+      manual_avoid = true;
+    else manual_avoid = false;
+  }else
+  {
+    manual_avoid = false;
   }
+
   obstacle_lidar_check_flag = true;
 }
 
@@ -816,8 +869,8 @@ void obstacle_avoid_trajectory_generation(const Vector3f& current_position, cons
   trajectory_matrix(0,1) = current_position(1);
   trajectory_matrix(1,0) = current_position(0) + 2 * n_vector(0);
   trajectory_matrix(1,1) = current_position(1) + 2 * n_vector(1);
-  trajectory_matrix(2,0) = trajectory_matrix(1,0) + 5.0 * direction(0);
-  trajectory_matrix(2,1) = trajectory_matrix(1,1) + 5.0 * direction(1);
-  trajectory_matrix(3,0) = current_position(0) + 5.0 * direction(0);
-  trajectory_matrix(3,1) = current_position(1) + 5.0 * direction(1);
+  trajectory_matrix(2,0) = trajectory_matrix(1,0) + 4.0 * direction(0);
+  trajectory_matrix(2,1) = trajectory_matrix(1,1) + 4.0 * direction(1);
+  trajectory_matrix(3,0) = current_position(0) + 4.0 * direction(0);
+  trajectory_matrix(3,1) = current_position(1) + 4.0 * direction(1);
 }
