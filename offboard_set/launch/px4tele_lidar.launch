@@ -47,4 +47,6 @@
         </node>
         <node name="publish_setpoints" pkg="offboard_set" type="publish_setpoints" output="screen">
         </node>
+        <node name="record" pkg="rosbag" type="record" args="record -O /home/ubuntu/rec.bag /mavros/state /offboard/setpoints_raw /offboard/setpoints_local /crop_dist /laser_send"/>
+        </node>
 </launch>
