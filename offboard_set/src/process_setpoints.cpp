@@ -109,6 +109,7 @@ bool mode_change_flag_1 = false;
 bool mode_change_flag_2 = false;
 mavros_extras::PositionSetpoint processed_setpoint;
 std_msgs::Float32 standard_height;
+mavros_extras::LaserDistance record_values;
 
 int main(int argc, char **argv)  
 {  
@@ -119,6 +120,7 @@ int main(int argc, char **argv)
   
   ros::Publisher offboard_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/setpoints_local", 2);  
   ros::Publisher standard_height_pub = nh.advertise<std_msgs::Float32>("offboard/standard_height", 2);
+  ros::Publisher record_paras_pub = nh.advertise<mavros_extras::LaserDistance>("offboard/record",2);
 
   ros::Subscriber setpoint_sub = nh.subscribe("/offboard/setpoints_raw", 2, chatterCallback_receive_setpoint_raw);
   ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
@@ -152,6 +154,12 @@ int main(int argc, char **argv)
     if(laser_fly_height_enable && height_lidar_running) standard_height.data = laser_height;
     else standard_height.data = current_ph;
     standard_height_pub.publish(standard_height);
+
+    record_values.min_distance = start_pos[0];
+    record_values.angle = start_pos[1];
+    record_values.laser_x = ended_pos[0];
+    record_values.laser_y = ended_pos[1];
+    record_paras_pub.publish(record_values);
 
   	if(new_setpoint_yaw < -100)
     {
