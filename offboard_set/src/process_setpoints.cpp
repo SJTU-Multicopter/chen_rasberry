@@ -292,7 +292,7 @@ int main(int argc, char **argv)
         rotate(-current_yaw, local_pos, body_pos);
         body_pos_stop(0) = body_pos(0) - (300.0 - obstacle_distance) / 100.0f * cosf(obstacle_angle / 180.0 * Pi);
         body_pos_stop(1) = body_pos(1) + (300.0 - obstacle_distance) / 100.0f * sinf(obstacle_angle / 180.0 * Pi);
-        rotate(-current_yaw, body_pos_stop, local_pos_stop);
+        rotate(current_yaw, body_pos_stop, local_pos_stop);
         stop_px = local_pos_stop(0);
         stop_py = local_pos_stop(1);
         stop_ph = current_ph;
@@ -787,7 +787,7 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
   if(direction.dot(obstacle_pos_local) > 0) fly_direction_enable = true;
   else fly_direction_enable = false;
 
-  if(obstacle_distance > 90.0 && obstacle_distance < 300.0)
+  if(obstacle_distance > 90.0 && obstacle_distance < 400.0)
   {
     if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && fly_direction_enable && obstacle_lidar_running)  
       auto_avoid_processing = true;
