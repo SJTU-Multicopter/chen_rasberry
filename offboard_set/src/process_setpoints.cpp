@@ -105,8 +105,7 @@ float start_yaw = 0.0;
 bool start_bool = true;
 
 bool different_sp_rcv = false;
-bool mode_change_flag_1 = false;
-bool mode_change_flag_2 = false;
+
 mavros_extras::PositionSetpoint processed_setpoint;
 std_msgs::Float32 standard_height;
 mavros_extras::LaserDistance record_values;
@@ -201,7 +200,7 @@ int main(int argc, char **argv)
       processed_setpoint.yaw = new_setpoint_yaw;
       start_bool = true;
     }
-    else  //ph==-2 included, this will process in publish_setpoints.cpp
+    else if//ph==-2 included, this will process in publish_setpoints.cpp
     {
       if(different_sp_rcv){//traj init
         different_sp_rcv = false;
@@ -284,6 +283,7 @@ int main(int argc, char **argv)
         processed_setpoint.yaw = new_setpoint_yaw;
 
     }//end of if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
+
     current_t += 1.0 / LOOP_RATE_PLAN;
 
     //obstacle avoidance by CJ
@@ -406,13 +406,13 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     new_setpoint_yaw = msg.yaw;
     
   }else{
-    if(offboard_ready)
+    if(msg.ph > -999.0) //if(offboard_ready)
     {
       if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05))// && float_near(msg.ph, new_setpoint_ph, 0.05))
       {
-        //a same sp is rcved      
+        ;
       }
-      else{//a new sp
+      else{
         start_pos[0] = ended_pos[0];
         start_pos[1] = ended_pos[1];
         ended_pos[0] = msg.px;
@@ -422,13 +422,14 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
         different_sp_rcv = true;
       }
     }
-    else//not offboard ready
+    else
     {
       start_pos[0] = current_px;
       start_pos[1] = current_py;
       ended_pos[0] = current_px;
-      ended_pos[1] = current_py;
-    }    
+      ended_pos[1] = current_py; 
+    }
+
     new_setpoint_px = msg.px;
     new_setpoint_py = msg.py;
 
@@ -465,20 +466,12 @@ void chatterCallback_mode(const mavros::State &msg)
   if(msg.mode=="OFFBOARD") 
     {
       offboard_ready=true;
-      mode_change_flag_1 = true;
     }
   else 
     {
-      offboard_ready=false;
-      mode_change_flag_1 = false;
-      mode_change_flag_2 = true;   
+      offboard_ready=false;  
     }
 
-  if(mode_change_flag_1 && mode_change_flag_2) 
-  {
-    different_sp_rcv =true;
-    mode_change_flag_2 = false;
-  }
 
   //use as timer, 1Hz
   timer_counter += 1;
