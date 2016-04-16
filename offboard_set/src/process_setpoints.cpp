@@ -200,7 +200,7 @@ int main(int argc, char **argv)
       processed_setpoint.yaw = new_setpoint_yaw;
       start_bool = true;
     }
-    else if//ph==-2 included, this will process in publish_setpoints.cpp
+    else//ph==-2 included, this will process in publish_setpoints.cpp
     {
       if(different_sp_rcv){//traj init
         different_sp_rcv = false;
@@ -406,7 +406,7 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
     new_setpoint_yaw = msg.yaw;
     
   }else{
-    if(msg.ph > -999.0) //if(offboard_ready)
+    if(msg.px > -999.0) //if(offboard_ready)
     {
       if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05))// && float_near(msg.ph, new_setpoint_ph, 0.05))
       {

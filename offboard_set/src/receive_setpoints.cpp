@@ -124,8 +124,8 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
              
         if(send_counter == 0) //initial point
 	    {
-	    	  setpoint.px = current_px; 
-    	    setpoint.py = current_py;
+	    	  setpoint.px = -1000.0; 
+    	    setpoint.py = -1000.0;
     	    setpoint.ph = route_point[send_counter][2];
           setpoint.yaw = -120;  //<-100, mark the first take off point,wont get into trajactory generate in process_setpoints.cpp
           if(near_bool(setpoint.ph, standard_height))
