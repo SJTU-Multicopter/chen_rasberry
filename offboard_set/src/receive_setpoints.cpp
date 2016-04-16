@@ -56,9 +56,9 @@ int main(int argc, char **argv)
 
   ros::Rate loop_rate(10);
 
-  stop_setpoint.px = 0.0;
-  stop_setpoint.py = 0.0;
-  stop_setpoint.ph = -1.0;
+  stop_setpoint.px = -1000.0;
+  stop_setpoint.py = -1000.0;
+  stop_setpoint.ph = -2000.0;
   stop_setpoint.yaw = route_yaw;
 
   while (ros::ok())  
