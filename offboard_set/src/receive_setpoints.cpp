@@ -38,6 +38,7 @@ int close_counter = 0;
 int send_counter = 0;
 
 bool offboard_ready = false;
+bool new_setpoint_writed = false;
 
 int main(int argc, char **argv)  
 {  
@@ -86,7 +87,7 @@ int main(int argc, char **argv)
       routepoint_pub.publish(stop_setpoint); //ph = -2000.0, stop sending setpoint, reject offboard
     }
     //send new route point
-    else if(offboard_ready && (msg_seq - send_counter) >= -1 && send_counter <= total_num)
+    else if(new_setpoint_writed && (msg_seq - send_counter) >= -1 && send_counter <= total_num)
     {  		    
         routepoint_pub.publish(setpoint);
     }
@@ -152,7 +153,9 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
     	    setpoint.ph = route_point[send_counter][2];
           setpoint.yaw = route_yaw;
 	    }
+      new_setpoint_writed = true;
 	}
+  else new_setpoint_writed = false;
 
 	current_px = msg.pose.position.x;
 	current_py = msg.pose.position.y;
