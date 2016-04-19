@@ -52,9 +52,9 @@ void scanCallback(const sensor_msgs::LaserScan laser)
 				}
 			}
 		}
-		
-		pos.min_distance = min_distance*100;
-		pos.angle = angle;
+	}
+	pos.min_distance = min_distance*100;
+	pos.angle = angle;
 } 
 
 int main(int argc, char **argv)
