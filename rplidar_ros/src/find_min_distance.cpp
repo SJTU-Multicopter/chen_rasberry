@@ -14,7 +14,7 @@ void scanCallback(const sensor_msgs::LaserScan laser)
 	angle = 0;
 	for(int i=0; i<laser.ranges.size(); i=i+1)
 	{
-		if(laser.intensities[i] > 12.0)
+		if(laser.intensities[i] > 11.0 && laser.intensities[i] < 35.0)
 		{
 			if (laser.ranges[i] > 0.9 && laser.ranges[i] < laser.range_max){
 				if(laser.ranges[i] < min_distance)
