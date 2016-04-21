@@ -81,10 +81,14 @@ Vector3f next_pos(0.0,0.0,0.0);  //add by CJ
 
 int fly_direction = 0; //add by CJ
 int auto_avoid_count = 0;  //add by CJ
-float obstacle_distance = 0.0;  //add by CJ
+float obstacle_distance = 6.0;  //add by CJ
 float obstacle_angle = 0.0;  //add by CJ
-float obstacle_distance_prev = 0.0;  //add by CJ
+float obstacle_distance_prev = 6.0;  //add by CJ
 float obstacle_angle_prev = 0.0;  //add by CJ
+float laser_distance = 6.0;  //add by CJ
+float laser_angle = 0.0;  //add by CJ
+float laser_distance_pre = 6.0;  //add by CJ
+float laser_angle_pre = 0.0;  //add by CJ
 float stop_px = 0.0;  //add by CJ
 float stop_py = 0.0;  //add by CJ
 float stop_ph = 0.0;  //add by CJ
@@ -792,39 +796,45 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 	Vector3f obstacle_pos_local;
 	Vector3f direction;
 
-	obstacle_distance_prev = obstacle_distance;
-	obstacle_angle_prev = obstacle_angle;
-	obstacle_distance = msg.min_distance;
-	obstacle_angle = msg.angle;
+	laser_distance_pre = laser_distance;
+	laser_angle_pre = laser_angle;
+	laser_distance = msg.min_distance;
+	laser_angle = msg.angle;
 
 
 	direction = next_pos - local_pos;
-	obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
-	obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
+	obstacle_pos_body(0) = laser_distance / 100.0 * cosf(laser_angle / 180.0 * Pi);
+	obstacle_pos_body(1) = -laser_distance / 100.0 * sinf(laser_angle / 180.0 * Pi);
 	obstacle_pos_body(2) = 0.0;
 	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
 	if(direction.dot(obstacle_pos_local) > 0) fly_direction_enable = true;
 	else fly_direction_enable = false;
 
-	if((obstacle_distance_prev - obstacle_distance > 300.0) || fabs(obstacle_angle - obstacle_angle_prev) > 60.0f)
-	{
-		disturb = true;
-	}else
-	{
-		disturb = false;
-		disturb_counter ++;
- 		if(disturb_counter == 2)
-		{
-			if(obstacle_distance > 90.0 && obstacle_distance < 400.0)
-			{
-				obstacle = true;
-			}
-			disturb_counter == 0;
-		}
-	}
+		
 
-	if(obstacle_distance > 90.0 && obstacle_distance < 400.0)
+	if(laser_distance > 90.0 && laser_distance < 400.0)
 	{
+		obstacle_distance_prev = obstacle_distance;
+		obstacle_angle_prev = obstacle_angle;
+		obstacle_distance = laser_distance;
+		obstacle_angle = laser_angle;
+
+		if((obstacle_distance_prev - obstacle_distance > 250.0) || fabs(obstacle_angle - obstacle_angle_prev) > 60.0f)
+		{
+			disturb = true;
+		}else
+		{
+			disturb = false;
+			disturb_counter ++;
+	 		if(disturb_counter == 2)
+			{
+				if(obstacle_distance > 90.0 && obstacle_distance < 400.0)
+				{
+					obstacle = true;
+				}
+				disturb_counter == 0;
+			}
+		}
 
 		if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && fly_direction_enable && obstacle_lidar_running)  
 		{

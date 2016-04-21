@@ -63,7 +63,7 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ros::Subscriber scan_sub = n.subscribe("/scan_horizontal", 1, scanCallback);
   ros::Publisher pub = n.advertise<mavros_extras::LaserDistance>("/laser_send", 5);
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(5.5);
 
   while(ros::ok())
   {
