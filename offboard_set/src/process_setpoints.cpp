@@ -300,8 +300,8 @@ int main(int argc, char **argv)
 		if(manual_avoid)
 		{
 			rotate(-current_yaw, local_pos, body_pos);
-			body_pos_stop(0) = body_pos(0) - (300.0 - obstacle_distance) / 100.0f * cosf(obstacle_angle / 180.0 * Pi);
-			body_pos_stop(1) = body_pos(1) + (300.0 - obstacle_distance) / 100.0f * sinf(obstacle_angle / 180.0 * Pi);
+			body_pos_stop(0) = body_pos(0) - (400.0 - obstacle_distance) / 100.0f * cosf(obstacle_angle / 180.0 * Pi);
+			body_pos_stop(1) = body_pos(1) + (400.0 - obstacle_distance) / 100.0f * sinf(obstacle_angle / 180.0 * Pi);
 			rotate(current_yaw, body_pos_stop, local_pos_stop);
 			stop_px = local_pos_stop(0);
 			stop_py = local_pos_stop(1);
@@ -914,7 +914,7 @@ void obstacle_avoid_trajectory_generation(const Vector3f& current_position, cons
 
 	obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
 	obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
-	rotate(-current_yaw, obstacle_pos_body, obstacle_pos_local);
+	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
 
 	direction = next_position - current_position;
 	direction = direction.normalized();
