@@ -14,7 +14,7 @@ void scanCallback(const sensor_msgs::LaserScan laser)
 	angle = 0;
 	for(int i=0; i<laser.ranges.size(); i=i+1)
 	{
-	    if(laser.intensities[i] > 11.0 && laser.intensities[i] < 35.0)
+	    if(laser.intensities[i] > 11.0 && laser.intensities[i] < 30.0)
 		{
 			if (laser.ranges[i] > 0.9 && laser.ranges[i] < laser.range_max){
 				if(laser.ranges[i] < min_distance)
@@ -25,24 +25,66 @@ void scanCallback(const sensor_msgs::LaserScan laser)
 						angle = i;
 					}
 					if(i == 0){
-						if(fabs(laser.ranges[i] - laser.ranges[i + 1]) < 0.1 || fabs(laser.ranges[i] - laser.ranges[laser.ranges.size() - 1]) < 0.1){
-							if(laser.intensities[i] + laser.intensities[i + 1] + laser.intensities[laser.ranges.size() - 1] > 39.0)
+						if(fabs(laser.ranges[i] - laser.ranges[i + 1]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[i + 1] > 25.0)
+							{
+								min_distance = laser.ranges[i];
+								angle = i;
+							}
+						}
+						if(fabs(laser.ranges[i] - laser.ranges[laser.ranges.size() - 1]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[laser.ranges.size() - 1] > 25.0)
+							{
+								min_distance = laser.ranges[i];
+								angle = i;
+							}
+						}
+						if(fabs(laser.ranges[i] - laser.ranges[i + 1]) < 0.1 && fabs(laser.ranges[i] - laser.ranges[laser.ranges.size() - 1]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[i + 1] + laser.intensities[laser.ranges.size() - 1] > 33.0)
 							{
 								min_distance = laser.ranges[i];
 								angle = i;
 							}
 						}
 					}else if(i < laser.ranges.size() - 1){
-						if(fabs(laser.ranges[i] - laser.ranges[i + 1]) < 0.1 || fabs(laser.ranges[i] - laser.ranges[i - 1]) < 0.1){
-							if(laser.intensities[i] + laser.intensities[i + 1] + laser.intensities[i - 1] > 39.0)
+						if(fabs(laser.ranges[i] - laser.ranges[i + 1]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[i + 1] > 25.0)
+							{
+								min_distance = laser.ranges[i];
+								angle = i;
+							}
+						}
+						if(fabs(laser.ranges[i] - laser.ranges[i - 1]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[i - 1] > 25.0)
+							{
+								min_distance = laser.ranges[i];
+								angle = i;
+							}
+						}
+						if(fabs(laser.ranges[i] - laser.ranges[i + 1]) < 0.1 && fabs(laser.ranges[i] - laser.ranges[i - 1]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[i + 1] + laser.intensities[i - 1] > 33.0)
 							{
 								min_distance = laser.ranges[i];
 								angle = i;
 							}
 						}
 					}else{
-						if(fabs(laser.ranges[i] - laser.ranges[i - 1]) < 0.1 || fabs(laser.ranges[i] - laser.ranges[0]) < 0.1){
-							if(laser.intensities[i] + laser.intensities[i - 1] + laser.intensities[0] > 39.0)
+						if(fabs(laser.ranges[i] - laser.ranges[i - 1]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[i - 1] > 25.0)
+							{
+								min_distance = laser.ranges[i];
+								angle = i;
+							}
+						}
+						if(fabs(laser.ranges[i] - laser.ranges[0]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[0] > 25.0)
+							{
+								min_distance = laser.ranges[i];
+								angle = i;
+							}
+						}
+						if(fabs(laser.ranges[i] - laser.ranges[i - 1]) < 0.1 && fabs(laser.ranges[i] - laser.ranges[0]) < 0.1){
+							if(laser.intensities[i] + laser.intensities[i - 1] + laser.intensities[0] > 33.0)
 							{
 								min_distance = laser.ranges[i];
 								angle = i;
