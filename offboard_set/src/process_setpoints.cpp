@@ -308,16 +308,16 @@ int main(int argc, char **argv)
 			stop_ph = current_ph;
 			stop_yaw = current_yaw;
 
-			while(offboard_ready && ros::ok() && !disturb  && !obstacle)
-			{
-				processed_setpoint.px = current_px;
-				processed_setpoint.py = current_py;
-				processed_setpoint.ph = current_ph;
-				processed_setpoint.yaw = current_yaw; 
-				offboard_pub.publish(processed_setpoint);
-				ros::spinOnce();  
-				loop_rate.sleep();
-			} 
+			// while(offboard_ready && ros::ok() && !disturb  && !obstacle)
+			// {
+			// 	processed_setpoint.px = current_px;
+			// 	processed_setpoint.py = current_py;
+			// 	processed_setpoint.ph = current_ph;
+			// 	processed_setpoint.yaw = current_yaw; 
+			// 	offboard_pub.publish(processed_setpoint);
+			// 	ros::spinOnce();  
+			// 	loop_rate.sleep();
+			// } 
 
 			while(offboard_ready && ros::ok() && obstacle)
 			{
@@ -491,6 +491,11 @@ void chatterCallback_mode(const mavros::State &msg)
 		if(!switch_offboard){
 			switch_offboard = true;
 			obstacle = false;
+			
+			obstacle_distance_prev = 6.0;
+			obstacle_angle_prev = 0.0;
+			obstacle_distance = 6.0;
+			obstacle_angle = 0.0;
 		}
 	}
 	else 
@@ -825,15 +830,7 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 		}else
 		{
 			disturb = false;
-			disturb_counter ++;
-	 		if(disturb_counter == 2)
-			{
-				if(obstacle_distance > 90.0 && obstacle_distance < 400.0)
-				{
-					obstacle = true;
-				}
-				disturb_counter == 0;
-			}
+			obstacle = true;
 		}
 
 		if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && fly_direction_enable && obstacle_lidar_running)  
