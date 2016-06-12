@@ -1,6 +1,7 @@
 #include <wiringPi.h>
-
+#include <std_msgs/Float32.h>
 #include <std_msgs/String.h>
+#include <std_msgs/.h>
 #include <flowmeter/flowrate.h>
 #include "ros/ros.h"
 int second_cnt = 0;
@@ -22,14 +23,14 @@ int main(int argc, char **argv)
 //	pinMode(USB_OUT_PIN, OUTPUT);
 	pinMode(FLOW_SIGNAL_PIN, INPUT);
 	wiringPiISR (FLOW_SIGNAL_PIN, INT_EDGE_BOTH, &flow_interrupt) ;
-	ros::Publisher flowrate_pub = n.advertise<flowmeter::flowrate>("flowrate",5);
+    ros::Publisher flowrate_pub = n.advertise<std_msgs::Float32>("flowrate",5);
 	ros::Rate loop_rate(1);
 	while (ros::ok()){
 		int freq = second_cnt;
 		float flowrate = freq / 48.0;
 		ROS_INFO("flowrate: %f\n", flowrate);
-		flowmeter::flowrate msg;
-		msg.flowrate = flowrate;
+        std_msgs::Float32 msg;
+        msg.data = flowrate;
 		flowrate_pub.publish(msg);
 		second_cnt = 0;
 		ros::spinOnce();
