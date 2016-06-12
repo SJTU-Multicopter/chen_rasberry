@@ -45,6 +45,8 @@ private:
 
     float crop_dist;
     float flowrate;
+    float obstacle_angle;
+    float obstacle_distance;
 
 	std::string frame_id;
 
@@ -58,11 +60,13 @@ private:
     
     //callbacks
     void laser_distance_send_cb(const mavros_extras::LaserDistance &msg){
-        laser_distance_send(msg.min_distance,msg.angle,crop_dist,flowrate);
+        obstacle_distance= msg.min_distance;
+        obstacle_angle=msg.angle;
     }
 
     void crop_distance_send_cb(const std_msgs::Float32 &msg){
         crop_dist = msg.data;
+        laser_distance_send(obstacle_distance,obstacle_angle,crop_dist,flowrate);
     }
     void flowrate_send_cb(const std_msgs::Float32 &msg){
         flowrate = msg.data;
