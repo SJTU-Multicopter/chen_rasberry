@@ -827,7 +827,7 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 		if((fabs(obstacle_distance_prev - obstacle_distance) > 250.0) || 
 		   (fabs(obstacle_angle - obstacle_angle_prev) > 60.0f && 
 		   !((obstacle_angle > 0.0 && obstacle_angle < 60.0 && obstacle_angle_prev > 300.0 && obstacle_angle_prev < 360.0) || 
-		   (obstacle_angle_prev > 0.0 && obstacle_angle_prev < 60.0 && obstacle_angle > 300.0 && obstacle_angle < 360.0)))
+		   (obstacle_angle_prev > 0.0 && obstacle_angle_prev < 60.0 && obstacle_angle > 300.0 && obstacle_angle < 360.0))))
 		{
 			disturb = true;
 		}else
