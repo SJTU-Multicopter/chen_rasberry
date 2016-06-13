@@ -1,10 +1,10 @@
 #include <wiringPi.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/String.h>
-#include <std_msgs/.h>
-#include <flowmeter/flowrate.h>
 #include "ros/ros.h"
 int second_cnt = 0;
+std_msgs::Float32 msg;
+
 #define FLOW_SIGNAL_PIN 15
 void flow_interrupt(void)
 {
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 		int freq = second_cnt;
 		float flowrate = freq / 48.0;
 		ROS_INFO("flowrate: %f\n", flowrate);
-        std_msgs::Float32 msg;
+
         msg.data = flowrate;
 		flowrate_pub.publish(msg);
 		second_cnt = 0;
