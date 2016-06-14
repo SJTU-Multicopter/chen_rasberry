@@ -113,8 +113,14 @@ float ended_pos[2] = {0.0,0.0};
 float start_ph = 0.0;
 float start_yaw = 0.0;
 bool start_bool = true;
+bool ploylines_flying = false;
 
 bool different_sp_rcv = false;
+
+float MAX_v = 3.0;
+float MAX_pitch_deg = 20.0;
+float MAX_j = 2.5;
+float max_a = 0;
 
 mavros_extras::PositionSetpoint processed_setpoint;
 std_msgs::Float32 standard_height;
@@ -141,8 +147,7 @@ int main(int argc, char **argv)
 	
 	ros::Rate loop_rate(LOOP_RATE_PLAN);
 
-	float MAX_v = 3.0, MAX_pitch_deg = 20.0, MAX_j = 2.5;
-	float max_a = 0;
+	
 
 	int method = 1;
 	float avrg_vel = 1.0;
@@ -192,6 +197,8 @@ int main(int argc, char **argv)
 			else if(standard_height.data - new_setpoint_ph > 0.3) processed_setpoint.ph = current_ph - 0.4;
 			else processed_setpoint.ph = standard_height.data;
 
+			ploylines_flying = false;
+
 		}
 		else if(new_setpoint_ph  > -1001.0 && new_setpoint_ph < -999.0)
 		{
@@ -201,6 +208,8 @@ int main(int argc, char **argv)
 			processed_setpoint.yaw = current_yaw;
 
 			start_bool = true;
+
+			ploylines_flying = false;
 		}
 		else if(new_setpoint_ph < -1994)
 		{
@@ -209,9 +218,13 @@ int main(int argc, char **argv)
 			processed_setpoint.ph = new_setpoint_ph;
 			processed_setpoint.yaw = new_setpoint_yaw;
 			start_bool = true;
+
+			ploylines_flying = false;
 		}
 		else//ph==-2 included, this will process in publish_setpoints.cpp
 		{
+			ploylines_flying = true;
+
 			if(different_sp_rcv){//traj init
 				different_sp_rcv = false;
 
@@ -330,7 +343,7 @@ int main(int argc, char **argv)
 				loop_rate.sleep();
 			}
 
-				      
+					  
 		}
 
 		offboard_pub.publish(processed_setpoint);
@@ -792,6 +805,8 @@ void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &
 
 	if(msg.laser_height_enable == 1) laser_fly_height_enable = true;
 	else laser_fly_height_enable = false;
+
+    if(msg.add_two > 0 && msg.add_two < 10 && !ploylines_flying) MAX_v = msg.add_two;
 }
 
 //Subscribe obstacle msg by CJ
