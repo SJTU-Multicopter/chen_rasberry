@@ -116,7 +116,7 @@ private:
 Scan::Scan()
 {
 	CropDistance = n.advertise<std_msgs::Float32>("/crop_dist", 5);								/* publish the distance to the crop */
-	scan_sub = n.subscribe<sensor_msgs::LaserScan>("/scan", 5, &Scan::scanCallBack, this);					/* when the data of Laser rangefinder comes, trigger the callback function */
+	scan_sub = n.subscribe<sensor_msgs::LaserScan>("/scan_vertical", 5, &Scan::scanCallBack, this);					/* when the data of Laser rangefinder comes, trigger the callback function */
 	pose_sub = n.subscribe<geometry_msgs::PoseStamped>("/mavros/local_position/local", 5, &Scan::poseCallBack, this);	/* subscribe the data of the pose of the drone for correcting the height */
 }
 
