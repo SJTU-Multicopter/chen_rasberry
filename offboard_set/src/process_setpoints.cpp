@@ -10,6 +10,7 @@
 #include "std_msgs/String.h"   //new
 #include "std_msgs/Float32.h"
 #define Pi 3.141592653
+#define ERROR_LIMIT 0.3
 #define LOOP_RATE_PLAN 10
 using namespace Eigen;
 
@@ -300,7 +301,12 @@ int main(int argc, char **argv)
 //      processed_setpoint.ph = new_setpoint_ph;
 //      processed_setpoint.yaw = new_setpoint_yaw;
 			/*set height*/
-			if(laser_fly_height_enable && height_lidar_running) processed_setpoint.ph = new_setpoint_ph - laser_height + current_ph ;
+			if(laser_fly_height_enable && height_lidar_running) 
+			{
+				if(fabs(new_setpoint_ph - laser_height) < ERROR_LIMIT) processed_setpoint.ph = new_setpoint_ph - laser_height + current_ph;
+				else if(new_setpoint_ph - laser_height >= ERROR_LIMIT) processed_setpoint.ph = ERROR_LIMIT + current_ph;
+				else processed_setpoint.ph = current_ph - ERROR_LIMIT;
+			}
 			else processed_setpoint.ph = new_setpoint_ph;
 
 			processed_setpoint.yaw = new_setpoint_yaw;
