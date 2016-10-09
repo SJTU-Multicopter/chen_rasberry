@@ -131,7 +131,7 @@ add_library(mavros_extras
   src/plugins/vision_speed_estimate.cpp
   src/plugins/vibration.cpp
   src/plugins/cam_imu_sync.cpp
-  #src/plugins/sonar_distance.cpp
+  src/plugins/sonar_distance.cpp
   #src/plugins/sonar_receiver.cpp
   src/plugins/laser_distance.cpp
   #src/plugins/laser_receiver.cpp

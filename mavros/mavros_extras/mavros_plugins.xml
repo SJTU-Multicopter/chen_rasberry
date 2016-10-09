@@ -46,6 +46,8 @@
 	<description>Writtren by Clarence Chan for offboard_route_points</description>
 	</class>
     <class name="laser_distance" type="mavplugin::LaserDistancePlugin" base_class_type="mavplugin::MavRosPlugin">
-        </class>
+    </class>
+    <class name="sonar_distance" type="mavplugin::SonarDistancePlugin" base_class_type="mavplugin::MavRosPlugin">
+    </class>
 
 </library>

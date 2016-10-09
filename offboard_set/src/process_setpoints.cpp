@@ -10,7 +10,7 @@
 #include "std_msgs/String.h"   //new
 #include "std_msgs/Float32.h"
 #define Pi 3.141592653
-#define ERROR_LIMIT 0.3
+#define ERROR_LIMIT 0.2
 #define LOOP_RATE_PLAN 10
 using namespace Eigen;
 
