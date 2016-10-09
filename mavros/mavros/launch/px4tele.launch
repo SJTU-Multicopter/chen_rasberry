@@ -18,8 +18,4 @@
 		<arg name="tgt_component" value="$(arg tgt_component)" />
 		<arg name="log_output" value="$(arg log_output)" />
 	</include>
-        <node name="offboard_setpoints" pkg="offboard_set" type="offboard_setpoints" output="screen">
-        </node>
-        <node name="setpoints_publisher" pkg="offboard_set" type="setpoints_publisher" output="screen">
-        </node>
 </launch>

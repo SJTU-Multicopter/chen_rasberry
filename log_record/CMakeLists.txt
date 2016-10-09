@@ -1,24 +1,18 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mavros_extras)
+project(log_record)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  image_transport
-  cv_bridge
-  mavros
   roscpp
-  sensor_msgs
-  geometry_msgs
+  rospy
   std_msgs
-  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-include(EnableCXX11)
-include(MavrosMavlink)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -34,10 +28,10 @@ include(MavrosMavlink)
 ## * Let MSG_DEP_SET be the set of packages whose message types you use in
 ##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
 ## * In the file package.xml:
+##   * add a build_depend tag for "message_generation"
 ##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
-##   * If MSG_DEP_SET isn't empty the following dependencies might have been
-##     pulled in transitively but can be declared for certainty nonetheless:
-##     * add a build_depend tag for "message_generation"
+##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
+##     but can be declared for certainty nonetheless:
 ##     * add a run_depend tag for "message_runtime"
 ## * In this file (CMakeLists.txt):
 ##   * add "message_generation" and every package in MSG_DEP_SET to
@@ -50,26 +44,11 @@ include(MavrosMavlink)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  OpticalFlowRad.msg
-  Vibration.msg
-  CamIMUStamp.msg
-  SonarDistance.msg
-  LaserDistance.msg
-  RPLidar.msg
-  #FieldSize.msg
-  #FieldSizeConfirm.msg
-  OffboardRoutePoints.msg
-  OffboardRoutePointsConfirm.msg
-  Rabbot.msg
-  PumpController.msg
-  PumpStatus.msg
-  ExtraFunction.msg
-  ExtraFunctionReceiver.msg
-  PositionSetpoint.msg
-  FlyDirection.msg
-)
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -86,12 +65,30 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  mavros
-  sensor_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+# )
 
+################################################
+## Declare ROS dynamic reconfigure parameters ##
+################################################
+
+## To declare and build dynamic reconfigure parameters within this
+## package, follow these steps:
+## * In the file package.xml:
+##   * add a build_depend and a run_depend tag for "dynamic_reconfigure"
+## * In this file (CMakeLists.txt):
+##   * add "dynamic_reconfigure" to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * uncomment the "generate_dynamic_reconfigure_options" section below
+##     and list every .cfg file to be processed
+
+## Generate dynamic reconfigure parameters in the 'cfg' folder
+# generate_dynamic_reconfigure_options(
+#   cfg/DynReconf1.cfg
+#   cfg/DynReconf2.cfg
+# )
 
 ###################################
 ## catkin specific configuration ##
@@ -104,9 +101,9 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-  LIBRARIES mavros_extras
-  CATKIN_DEPENDS image_transport mavros roscpp sensor_msgs
-  DEPENDS Boost mavlink
+#  LIBRARIES log_record
+#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  DEPENDS system_lib
 )
 
 ###########
@@ -118,56 +115,29 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${mavlink_INCLUDE_DIRS}
 )
 
-## Declare a cpp library
-add_library(mavros_extras
-  src/plugins/distance_sensor.cpp
-  src/plugins/px4flow.cpp
-  src/plugins/image_pub.cpp
-  src/plugins/mocap_pose_estimate.cpp
-  src/plugins/vision_pose_estimate.cpp
-  src/plugins/vision_speed_estimate.cpp
-  src/plugins/vibration.cpp
-  src/plugins/cam_imu_sync.cpp
-  #src/plugins/sonar_distance.cpp
-  #src/plugins/sonar_receiver.cpp
-  src/plugins/laser_distance.cpp
-  #src/plugins/laser_receiver.cpp
-  src/plugins/pump_controller.cpp
-  src/plugins/pump_status.cpp
-  #src/plugins/offboard_route_points.cpp
-  src/plugins/offboard_route_points_receiver.cpp
-  src/plugins/offboard_route_points_confirm.cpp
-  #src/plugins/offboard_route_points_confirm_receiver.cpp
-  src/plugins/extra_function.cpp
-  src/plugins/extra_function_receiver.cpp
-  
-)
-add_dependencies(mavros_extras
-  mavros_extras_generate_messages_cpp
-)
-target_link_libraries(mavros_extras
-  ${mavros_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
+## Declare a C++ library
+# add_library(log_record
+#   src/${PROJECT_NAME}/log_record.cpp
+# )
 
-## Declare a cpp executable
-add_executable(gcs_image_bridge
-  src/gcs_image_bridge.cpp
-)
-target_link_libraries(gcs_image_bridge
-  ${mavros_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+# add_dependencies(log_record ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(copter_visualization
-  src/copter_visualization.cpp
-)
-target_link_libraries(copter_visualization
-  ${catkin_LIBRARIES}
-)
+## Declare a C++ executable
+# add_executable(log_record_node src/log_record_node.cpp)
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+# add_dependencies(log_record_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+# target_link_libraries(log_record_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -178,18 +148,17 @@ target_link_libraries(copter_visualization
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-file(GLOB SCRIPTS ${PROJECT_SOURCE_DIR}/scripts/*)
-install(PROGRAMS
-  ${SCRIPTS}
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# install(PROGRAMS
+#   scripts/my_python_script
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS mavros_extras gcs_image_bridge copter_visualization
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# install(TARGETS log_record log_record_node
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/
@@ -199,21 +168,18 @@ install(TARGETS mavros_extras gcs_image_bridge copter_visualization
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-install(FILES
-  mavros_plugins.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
+# install(FILES
+#   # myfile1
+#   # myfile2
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
 
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_mavros_extras.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_log_record.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
@@ -221,4 +187,6 @@ install(DIRECTORY launch/
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-# vim: ts=2 sw=2 et:
+add_executable(record src/record.cpp)  
+target_link_libraries(record ${catkin_LIBRARIES})  
+add_dependencies(record beginner_tutorials_generate_messages_cpp)

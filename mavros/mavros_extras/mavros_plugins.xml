@@ -1,7 +1,7 @@
 <library path="lib/libmavros_extras">
 	<class name="distance_sensor" type="mavplugin::DistanceSensorPlugin" base_class_type="mavplugin::MavRosPlugin">
-		<description>Publish DISTANCE_SENSOR message data from FCU or connected sensors in companion computer.</description>
-	</class>
+  		<description>Publish DISTANCE_SENSOR message data from FCU or connected sensors in companion computer.</description>
+ 	 </class>
 	<class name="px4flow" type="mavplugin::PX4FlowPlugin" base_class_type="mavplugin::MavRosPlugin">
 		<description>Publish OPTICAL_FLOW message data from FCU or PX4Flow module.</description>
 	</class>
@@ -25,18 +25,27 @@
 		<description>Publish camera trigger data for synchronisation of IMU and camera frames</description>
 	</class>
 
-	<class name="laser_distance" type="mavplugin::LaserDistancePlugin" base_class_type="mavplugin::MavRosPlugin">
-		<description>Publish distance to the ground/crop with data aquired from RPLidar</description>
+        
+
+    <class name="pump_controller" type="mavplugin::PumpControllerPlugin" base_class_type="mavplugin::MavRosPlugin">
+	<description>Writtren by Clarence Chan for pump</description>
+	</class>
+	
+    <class name="pump_status" type="mavplugin::PumpStatusPlugin" base_class_type="mavplugin::MavRosPlugin">
+	<description>Writtren by Clarence Chan for pump</description>
 	</class>
 
-	<class name="field_size_receiver" type="mavplugin::FieldSizeReceiverPlugin" base_class_type="mavplugin::MavRosPlugin">
-		<description>Writtren by Clarence Chan for field size</description>
+    <class name="extra_function_receiver" type="mavplugin::ExtraFunctionReceiverPlugin" base_class_type="mavplugin::MavRosPlugin">
+	<description>Writtren by Clarence Chan for extra functions</description>
 	</class>
-
-	<class name="field_size_confirm" type="mavplugin::FieldSizeConfirmPlugin" base_class_type="mavplugin::MavRosPlugin">
-		<description>Writtren by Clarence Chan to confirm field size</description>
+	
+    <class name="offboard_route_points_receiver" type="mavplugin::OffboardRoutePointsReceiverPlugin" base_class_type="mavplugin::MavRosPlugin">
+	<description>Writtren by Clarence Chan for offboard_route_points</description>
 	</class>
-
-
+    <class name="offboard_route_points_confirm" type="mavplugin::OffboardRoutePointsConfirmPlugin" base_class_type="mavplugin::MavRosPlugin">
+	<description>Writtren by Clarence Chan for offboard_route_points</description>
+	</class>
+    <class name="laser_distance" type="mavplugin::LaserDistancePlugin" base_class_type="mavplugin::MavRosPlugin">
+        </class>
 
 </library>

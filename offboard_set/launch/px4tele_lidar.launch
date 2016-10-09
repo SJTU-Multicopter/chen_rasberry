@@ -41,10 +41,14 @@
 
         <node pkg="crop_height" type="crop_height" name="crop_height">
         </node>
-
-        <node name="offboard_setpoints" pkg="offboard_set" type="offboard_setpoints">
+        <node name="receive_setpoints" pkg="offboard_set" type="receive_setpoints" output="screen">
         </node>
-
-        <node name="setpoints_publisher" pkg="offboard_set" type="setpoints_publisher">
+        <node name="process_setpoints" pkg="offboard_set" type="process_setpoints" output="screen">
+        </node>
+        <node name="publish_setpoints" pkg="offboard_set" type="publish_setpoints" output="screen">
+        </node>
+        <node name="flowmeter" pkg="flowmeter" type="flowmeter">
+        </node>
+        <node name="record" pkg="rosbag" type="record" args="record -O /home/ubuntu/rec.bag /mavros/state /offboard/setpoints_raw /offboard/setpoints_local /crop_dist /laser_send /offboard/record">
         </node>
 </launch>
