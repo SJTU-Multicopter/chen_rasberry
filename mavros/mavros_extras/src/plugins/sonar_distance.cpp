@@ -2,7 +2,6 @@
 #include <pluginlib/class_list_macros.h>
 #include <mavros_extras/SonarDistance.h>
 #include <flowmeter/flowrate.h>
-#include "std_msgs/Float32.h" 
 #include <ros/console.h>
 
 namespace mavplugin{
@@ -20,7 +19,7 @@ public:
         
     	sonar_distance_nh.param<std::string>("frame_id", frame_id, "sonar_distance");
         //subcribe the topic and excute the callback function
-    	sonar_distance_sub = sonar_distance_nh.subscribe("/flowmeter",5,&SonarDistancePlugin::sonar_distance_send_cb,this);
+    	sonar_distance_sub = sonar_distance_nh.subscribe("/flowrate",5,&SonarDistancePlugin::sonar_distance_send_cb,this);
 
     }
     
