@@ -134,7 +134,7 @@ void Scan::scanCallBack(const sensor_msgs::LaserScan::ConstPtr& scan)
 		/**Average**/
 		for(int i = 0; i < count; i++)
 		{
-			sum += values[count];
+			sum += values[i];
 		}
 		average = sum / count;
 
