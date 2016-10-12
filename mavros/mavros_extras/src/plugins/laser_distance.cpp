@@ -65,7 +65,7 @@ private:
         obstacle_angle=msg.angle;
     }
 
-    void crop_distance_send_cb(const geometry_msgs::Point32.h &msg){
+    void crop_distance_send_cb(const geometry_msgs::Point32 &msg){
         crop_dist = msg.x;
         confidence = msg.y * msg.z;
         laser_distance_send(obstacle_distance,obstacle_angle,crop_dist,confidence);
