@@ -308,8 +308,8 @@ int main(int argc, char **argv)
 			{
 				float delt_laser_height= (new_setpoint_ph - laser_height) * height_confidence1 * height_confidence2;
 
-				if(fabs(new_setpoint_ph - delt_laser_height) < ERROR_LIMIT) processed_setpoint.ph = new_setpoint_ph - delt_laser_height + current_ph;
-				else if(new_setpoint_ph - delt_laser_height >= ERROR_LIMIT) processed_setpoint.ph = ERROR_LIMIT + current_ph;
+				if(fabs(delt_laser_height) < ERROR_LIMIT) processed_setpoint.ph = delt_laser_height + current_ph;
+				else if(delt_laser_height >= ERROR_LIMIT) processed_setpoint.ph = ERROR_LIMIT + current_ph;
 				else processed_setpoint.ph = current_ph - ERROR_LIMIT;
 			}
 			else processed_setpoint.ph = new_setpoint_ph;
