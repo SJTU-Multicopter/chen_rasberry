@@ -9,6 +9,7 @@
 #include "Eigen/Dense"
 #include "std_msgs/String.h"   //new
 #include "std_msgs/Float32.h"
+#include "geometry_msgs/Point32.h"
 #define Pi 3.141592653
 #define ERROR_LIMIT 0.2
 #define LOOP_RATE_PLAN 10
@@ -19,7 +20,7 @@ void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
 void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add by CJ
-void chatterCallback_crop_distance(const std_msgs::Float32 &msg);  //add by CJ
+void chatterCallback_crop_distance(const geometry_msgs::Point32 &msg);  //add by CJ
 void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
 void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
 void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix);
@@ -98,6 +99,8 @@ float stop_yaw = 0.0;  //add by CJ
 int lidar_counter = 0;
 float laser_height_last = 0.0;
 float laser_height = 3.0;
+float height_confidence1 = 0.0;
+float height_confidence2 = 0.0;
 
 float current_px = 0.0;
 float current_py = 0.0;
@@ -295,16 +298,18 @@ int main(int argc, char **argv)
 
 				}
 			}
-//      ROS_INFO("method: %d x_sp: %f y_sp: %f", method, processed_setpoint.px, processed_setpoint.py);
-//      processed_setpoint.px = new_setpoint_px;
-//      processed_setpoint.py = new_setpoint_py;
-//      processed_setpoint.ph = new_setpoint_ph;
-//      processed_setpoint.yaw = new_setpoint_yaw;
+//      	ROS_INFO("method: %d x_sp: %f y_sp: %f", method, processed_setpoint.px, processed_setpoint.py);
+//      	processed_setpoint.px = new_setpoint_px;
+//      	processed_setpoint.py = new_setpoint_py;
+//      	processed_setpoint.ph = new_setpoint_ph;
+//      	processed_setpoint.yaw = new_setpoint_yaw;
 			/*set height*/
 			if(laser_fly_height_enable && height_lidar_running) 
 			{
-				if(fabs(new_setpoint_ph - laser_height) < ERROR_LIMIT) processed_setpoint.ph = new_setpoint_ph - laser_height + current_ph;
-				else if(new_setpoint_ph - laser_height >= ERROR_LIMIT) processed_setpoint.ph = ERROR_LIMIT + current_ph;
+				float delt_laser_height= (new_setpoint_ph - laser_height) * height_confidence1 * height_confidence2;
+
+				if(fabs(new_setpoint_ph - delt_laser_height) < ERROR_LIMIT) processed_setpoint.ph = new_setpoint_ph - delt_laser_height + current_ph;
+				else if(new_setpoint_ph - delt_laser_height >= ERROR_LIMIT) processed_setpoint.ph = ERROR_LIMIT + current_ph;
 				else processed_setpoint.ph = current_ph - ERROR_LIMIT;
 			}
 			else processed_setpoint.ph = new_setpoint_ph;
@@ -878,16 +883,18 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 }
 
 //Subscribe crop distance msg by CJ
-void chatterCallback_crop_distance(const std_msgs::Float32 &msg)
+void chatterCallback_crop_distance(const geometry_msgs::Point32 &msg)
 {
-	if(msg.data <= -1.5)
+	if(msg.x <= -1.5)
 	{
 		obstacle_avoid_height_enable = true;
 	}else
 	{
 		obstacle_avoid_height_enable = false;
 	}
-	laser_height = -msg.data;
+	laser_height = -msg.x;
+	height_confidence1 = msg.y;
+	height_confidence2 = msg.z;
 
 	lidar_counter += 1;
 	if(lidar_counter > 20)

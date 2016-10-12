@@ -3,6 +3,7 @@
 #include <mavros_extras/LaserDistance.h>
 #include "std_msgs/Float32.h" 
 #include <ros/console.h>
+#include "geometry_msgs/Point32.h"
 
 namespace mavplugin{
 
@@ -46,6 +47,7 @@ private:
     float flowrate;
     float obstacle_angle;
     float obstacle_distance;
+    float confidence;
 
 	std::string frame_id;
 
@@ -63,9 +65,10 @@ private:
         obstacle_angle=msg.angle;
     }
 
-    void crop_distance_send_cb(const std_msgs::Float32 &msg){
-        crop_dist = msg.data;
-        laser_distance_send(obstacle_distance,obstacle_angle,crop_dist,0.0);
+    void crop_distance_send_cb(const geometry_msgs::Point32.h &msg){
+        crop_dist = msg.x;
+        confidence = msg.y * msg.z;
+        laser_distance_send(obstacle_distance,obstacle_angle,crop_dist,confidence);
     }
 };
 
