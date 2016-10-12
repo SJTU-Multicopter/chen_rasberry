@@ -142,7 +142,7 @@ void Scan::scanCallBack(const sensor_msgs::LaserScan::ConstPtr& scan)
 		float total_varience = 0.0;
 		for(int i = 0; i < count; i++)
 		{
-			total_varience += (values[count] - average) * (values[count] - average);
+			total_varience += (values[i] - average) * (values[i] - average);
 		}
 		standard_error = sqrt(total_varience / count);  //standard error, between(0,5.2), ideal (0,1) if crop is 1m high
 
