@@ -85,8 +85,6 @@ int fly_direction = 0; //add by CJ
 int auto_avoid_count = 0;  //add by CJ
 float obstacle_distance = 20.0;  //add by CJ
 float obstacle_angle = 0.0;  //add by CJ
-float obstacle_distance_prev = 20.0;  //add by CJ
-float obstacle_angle_prev = 0.0;  //add by CJ
 float laser_distance = 6.0;  //add by CJ
 float laser_angle = 0.0;  //add by CJ
 float laser_distance_pre = 6.0;  //add by CJ
@@ -515,9 +513,7 @@ void chatterCallback_mode(const mavros::State &msg)
 		if(!switch_offboard){
 			switch_offboard = true;
 			obstacle = false;
-			
-			obstacle_distance_prev = 20.0;
-			obstacle_angle_prev = 0.0;
+
 			obstacle_distance = 20.0;
 			obstacle_angle = 0.0;
 		}
