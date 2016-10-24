@@ -83,9 +83,9 @@ Vector3f next_pos(0.0,0.0,0.0);  //add by CJ
 
 int fly_direction = 0; //add by CJ
 int auto_avoid_count = 0;  //add by CJ
-float obstacle_distance = 6.0;  //add by CJ
+float obstacle_distance = 20.0;  //add by CJ
 float obstacle_angle = 0.0;  //add by CJ
-float obstacle_distance_prev = 6.0;  //add by CJ
+float obstacle_distance_prev = 20.0;  //add by CJ
 float obstacle_angle_prev = 0.0;  //add by CJ
 float laser_distance = 6.0;  //add by CJ
 float laser_angle = 0.0;  //add by CJ
@@ -324,8 +324,8 @@ int main(int argc, char **argv)
 		if(manual_avoid)
 		{
 			rotate(-current_yaw, local_pos, body_pos);
-			body_pos_stop(0) = body_pos(0) - (400.0 - obstacle_distance) / 100.0f * cosf(obstacle_angle / 180.0 * Pi);
-			body_pos_stop(1) = body_pos(1) + (400.0 - obstacle_distance) / 100.0f * sinf(obstacle_angle / 180.0 * Pi);
+			body_pos_stop(0) = body_pos(0) - (5.0 - obstacle_distance) * cosf(obstacle_angle / 180.0 * Pi);
+			body_pos_stop(1) = body_pos(1) + (5.0 - obstacle_distance) * sinf(obstacle_angle / 180.0 * Pi);
 			rotate(current_yaw, body_pos_stop, local_pos_stop);
 			stop_px = local_pos_stop(0);
 			stop_py = local_pos_stop(1);
@@ -516,9 +516,9 @@ void chatterCallback_mode(const mavros::State &msg)
 			switch_offboard = true;
 			obstacle = false;
 			
-			obstacle_distance_prev = 6.0;
+			obstacle_distance_prev = 20.0;
 			obstacle_angle_prev = 0.0;
-			obstacle_distance = 6.0;
+			obstacle_distance = 20.0;
 			obstacle_angle = 0.0;
 		}
 	}
@@ -827,40 +827,20 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 	Vector3f obstacle_pos_local;
 	Vector3f direction;
 
-	laser_distance_pre = laser_distance;
-	laser_angle_pre = laser_angle;
 	laser_distance = msg.min_distance;
 	laser_angle = msg.angle;
 
-
 	direction = next_pos - local_pos;
-	obstacle_pos_body(0) = laser_distance / 100.0 * cosf(laser_angle / 180.0 * Pi);
-	obstacle_pos_body(1) = -laser_distance / 100.0 * sinf(laser_angle / 180.0 * Pi);
+	obstacle_pos_body(0) = laser_distance * cosf(laser_angle / 180.0 * Pi);
+	obstacle_pos_body(1) = -laser_distance * sinf(laser_angle / 180.0 * Pi);
 	obstacle_pos_body(2) = 0.0;
 	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
 	if(direction.dot(obstacle_pos_local) > 0) fly_direction_enable = true;
 	else fly_direction_enable = false;
 
-		
-
-	if(laser_distance > 90.0 && laser_distance < 400.0)
+	if(laser_distance > 0.9 && laser_distance < 5.0)
 	{
-		obstacle_distance_prev = obstacle_distance;
-		obstacle_angle_prev = obstacle_angle;
-		obstacle_distance = laser_distance;
-		obstacle_angle = laser_angle;
-
-		if((fabs(obstacle_distance_prev - obstacle_distance) > 250.0) || 
-		   (fabs(obstacle_angle - obstacle_angle_prev) > 60.0f && 
-		   !((obstacle_angle > 0.0 && obstacle_angle < 60.0 && obstacle_angle_prev > 300.0 && obstacle_angle_prev < 360.0) || 
-		   (obstacle_angle_prev > 0.0 && obstacle_angle_prev < 60.0 && obstacle_angle > 300.0 && obstacle_angle < 360.0))))
-		{
-			disturb = true;
-		}else
-		{
-			disturb = false;
-			obstacle = true;
-		}
+		obstacle = true;
 
 		if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && fly_direction_enable && obstacle_lidar_running)  
 		{
