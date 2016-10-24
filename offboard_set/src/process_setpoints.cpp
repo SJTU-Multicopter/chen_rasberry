@@ -79,6 +79,8 @@ Vector3f local_pos_stop(0.0,0.0,0.0);  //add by CJ
 Vector3f body_pos_stop(0.0,0.0,0.0);  //add by CJ
 Matrix<float, 4, 2> obstacle_avoid_trajectory;  //add by CJ
 Vector3f next_pos(0.0,0.0,0.0);  //add by CJ
+Vector3f obstacle_pos_body(0.0,0.0,0.0);
+Vector3f obstacle_pos_local(0.0,0.0,0.0);
 
 
 int fly_direction = 0; //add by CJ
@@ -321,25 +323,13 @@ int main(int argc, char **argv)
 		//obstacle avoidance by CJ
 		if(manual_avoid)
 		{
-			rotate(-current_yaw, local_pos, body_pos);
-			body_pos_stop(0) = body_pos(0) - (5.0 - obstacle_distance) * cosf(obstacle_angle / 180.0 * Pi);
-			body_pos_stop(1) = body_pos(1) + (5.0 - obstacle_distance) * sinf(obstacle_angle / 180.0 * Pi);
-			rotate(current_yaw, body_pos_stop, local_pos_stop);
+			local_pos_stop = obstacle_pos_local + (local_pos - obstacle_pos_local).normalized() * 5.0;
+
 			stop_px = local_pos_stop(0);
 			stop_py = local_pos_stop(1);
 			stop_ph = current_ph;
 			stop_yaw = current_yaw;
 
-			// while(offboard_ready && ros::ok() && !disturb  && !obstacle)
-			// {
-			// 	processed_setpoint.px = current_px;
-			// 	processed_setpoint.py = current_py;
-			// 	processed_setpoint.ph = current_ph;
-			// 	processed_setpoint.yaw = current_yaw; 
-			// 	offboard_pub.publish(processed_setpoint);
-			// 	ros::spinOnce();  
-			// 	loop_rate.sleep();
-			// } 
 
 			while(offboard_ready && ros::ok() && obstacle)
 			{
@@ -382,72 +372,6 @@ void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint 
 {
 //add by CJ
 	if(auto_avoid_processing){
-		if(auto_avoid_count == 0){
-			obstacle_avoid_trajectory << 0.0, 0.0,     
-					0.0, 0.0, 
-					0.0, 0.0, 
-					0.0, 0.0;
-			obstacle_avoid_trajectory_generation(local_pos, next_pos, obstacle_avoid_trajectory);
-			auto_avoid_count++;
-		}
-		if(auto_avoid_count == 1){
-			if(!fly_processing){
-				start_pos[0] = current_px;
-				start_pos[1] = current_py;
-				ended_pos[0] = obstacle_avoid_trajectory(1,0);
-				ended_pos[1] = obstacle_avoid_trajectory(1,1);
-				new_setpoint_px = ended_pos[0];
-				new_setpoint_py = ended_pos[1];
-				different_sp_rcv = true;
-				fly_processing = true;
-			}
-			else{
-				if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
-					auto_avoid_count++;
-					fly_processing = false;
-				}
-			}  
-		}
-		if(auto_avoid_count == 2){
-			if(!fly_processing){
-				start_pos[0] = obstacle_avoid_trajectory(1,0);
-				start_pos[1] = obstacle_avoid_trajectory(1,1);
-				ended_pos[0] = obstacle_avoid_trajectory(2,0);
-				ended_pos[1] = obstacle_avoid_trajectory(2,1);
-				new_setpoint_px = ended_pos[0];
-				new_setpoint_py = ended_pos[1];
-				different_sp_rcv = true;
-				fly_processing = true;
-			}else{
-				if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
-					auto_avoid_count++;
-					fly_processing = false;
-				}
-			}  
-		}
-		if(auto_avoid_count == 3){
-			if(!fly_processing){
-				start_pos[0] = obstacle_avoid_trajectory(2,0);
-				start_pos[1] = obstacle_avoid_trajectory(2,1);
-				ended_pos[0] = obstacle_avoid_trajectory(3,0);
-				ended_pos[1] = obstacle_avoid_trajectory(3,1);
-				new_setpoint_px = ended_pos[0];
-				new_setpoint_py = ended_pos[1];
-				different_sp_rcv = true;
-				fly_processing = true;
-			}else{
-				if(float_near(current_px, new_setpoint_px, 0.6) && float_near(current_py, new_setpoint_py, 0.6)){
-					auto_avoid_count++;
-					fly_processing = false;
-				}
-			} 
-		}
-		if(auto_avoid_count == 4){
-			auto_avoid_processing = false;    
-			auto_avoid_count = 0;
-		}
-		new_setpoint_ph = msg.ph;
-		new_setpoint_yaw = msg.yaw;
 		
 	}else{
 		if(msg.px > -999.0) //if(offboard_ready)
@@ -819,16 +743,14 @@ void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &
 //Subscribe obstacle msg by CJ
 void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 {
-	Vector3f obstacle_pos_body;
-	Vector3f obstacle_pos_local;
 	Vector3f direction;
 
 	laser_distance = msg.min_distance;
 	laser_angle = msg.angle;
 
 	direction = next_pos - local_pos;
-	obstacle_pos_body(0) = laser_distance * cosf(laser_angle / 180.0 * Pi);
-	obstacle_pos_body(1) = -laser_distance * sinf(laser_angle / 180.0 * Pi);
+	obstacle_pos_body(0) = laser_distance * cosf(laser_angle / 180.0 * Pi + Pi/2);
+	obstacle_pos_body(1) = laser_distance * sinf(laser_angle / 180.0 * Pi + Pi/2);
 	obstacle_pos_body(2) = 0.0;
 	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
 	if(direction.dot(obstacle_pos_local) > 0) fly_direction_enable = true;
@@ -914,28 +836,5 @@ void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
 
 void obstacle_avoid_trajectory_generation(const Vector3f& current_position, const Vector3f& next_position, Matrix<float, 4, 2> trajectory_matrix)
 {
-	Vector3f obstacle_pos_body;
-	Vector3f obstacle_pos_local;
-	Vector3f direction;
-	Vector3f n_vector;
-
-	obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
-	obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
-	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
-
-	direction = next_position - current_position;
-	direction = direction.normalized();
-	n_vector(0) = direction(1);
-	n_vector(1) = -direction(0);
-	n_vector = n_vector.normalized();
-	if(n_vector.dot(obstacle_pos_local) >= 0) n_vector = -n_vector;
-
-	trajectory_matrix(0,0) = current_position(0);
-	trajectory_matrix(0,1) = current_position(1);
-	trajectory_matrix(1,0) = current_position(0) + 2 * n_vector(0);
-	trajectory_matrix(1,1) = current_position(1) + 2 * n_vector(1);
-	trajectory_matrix(2,0) = trajectory_matrix(1,0) + 4.0 * direction(0);
-	trajectory_matrix(2,1) = trajectory_matrix(1,1) + 4.0 * direction(1);
-	trajectory_matrix(3,0) = current_position(0) + 4.0 * direction(0);
-	trajectory_matrix(3,1) = current_position(1) + 4.0 * direction(1);
+	
 }
