@@ -81,6 +81,7 @@ Matrix<float, 4, 2> obstacle_avoid_trajectory;  //add by CJ
 Vector3f next_pos(0.0,0.0,0.0);  //add by CJ
 Vector3f obstacle_pos_body(0.0,0.0,0.0);
 Vector3f obstacle_pos_local(0.0,0.0,0.0);
+Vector3f obstacle_pos_r_local(0.0,0.0,0.0);
 
 
 int fly_direction = 0; //add by CJ
@@ -323,7 +324,7 @@ int main(int argc, char **argv)
 		//obstacle avoidance by CJ
 		if(manual_avoid)
 		{
-			local_pos_stop = obstacle_pos_local + (local_pos - obstacle_pos_local).normalized() * 5.0;
+			local_pos_stop = obstacle_pos_local - obstacle_pos_r_local.normalized() * 5.0;
 
 			stop_px = local_pos_stop(0);
 			stop_py = local_pos_stop(1);
@@ -426,7 +427,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 	float q3=msg.pose.orientation.w;
 	//message.local_position.orientation.pitch = (asin(2*q0*q2-2*q1*q3 ))*57.3;
 	//message.local_position.orientation.roll  = (atan2(2*q2*q3 + 2*q0*q1, 1-2*q1*q1-2*q2*q2))*57.3;
-	current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2
+	current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, West: Pi/2, south:Pi, East:3/2Pi
 //  ROS_INFO("current_yaw %f",current_yaw);
 }
 void chatterCallback_mode(const mavros::State &msg)
@@ -752,8 +753,9 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 	obstacle_pos_body(0) = laser_distance * cosf(laser_angle / 180.0 * Pi + Pi/2);
 	obstacle_pos_body(1) = laser_distance * sinf(laser_angle / 180.0 * Pi + Pi/2);
 	obstacle_pos_body(2) = 0.0;
-	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
-	if(direction.dot(obstacle_pos_local) > 0) fly_direction_enable = true;
+	rotate(current_yaw, obstacle_pos_body, obstacle_pos_r_local);
+	obstacle_pos_local = local_pos + obstacle_pos_r_local;
+	if(direction.dot(obstacle_pos_r_local) > 0) fly_direction_enable = true;
 	else fly_direction_enable = false;
 
 	if(laser_distance > 0.9 && laser_distance < 5.0)
