@@ -63,12 +63,12 @@ private:
     void laser_distance_send_cb(const mavros_extras::LaserDistance &msg){
         obstacle_distance= msg.min_distance;
         obstacle_angle=msg.angle;
+        laser_distance_send(obstacle_distance,obstacle_angle,crop_dist,confidence);
     }
 
     void crop_distance_send_cb(const geometry_msgs::Point32 &msg){
         crop_dist = msg.x;
-        confidence = msg.y * msg.z;
-        laser_distance_send(obstacle_distance,obstacle_angle,crop_dist,confidence);
+        confidence = msg.y * msg.z;  
     }
 };
 

@@ -62,6 +62,7 @@ void ScanProcess::scanCallback(const sensor_msgs::LaserScan laser)
   }
   pos.min_distance = min_distance;
   pos.angle = angle*0.25 - 45;
+  if(pos.angle < 0) pos.angle = pos.angle + 360;
 }
 
 
