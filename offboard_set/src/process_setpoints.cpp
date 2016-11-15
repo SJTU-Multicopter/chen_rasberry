@@ -99,8 +99,8 @@ float stop_yaw = 0.0;  //add by CJ
 int lidar_counter = 0;
 float laser_height_last = 0.0;
 float laser_height = 3.0;
-float height_confidence1 = 0.0;
-float height_confidence2 = 0.0;
+float height_confidence1 = 1.0;
+float height_confidence2 = 1.0;
 
 float current_px = 0.0;
 float current_py = 0.0;
