@@ -4,3 +4,6 @@
 [submodule "rplidar_ros"]
 	path = rplidar_ros
 	url = git://github.com/owenqyzhang/rplidar_ros.git
+[submodule "de_lidar"]
+	path = de_lidar
+	url = git://github.com/Jister/de_lidar.git
