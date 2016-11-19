@@ -10,6 +10,7 @@
 #include "std_msgs/String.h"   //new
 #include "std_msgs/Float32.h"
 #include "geometry_msgs/Point32.h"
+#include "de_lidar/Lidar.h"
 #define Pi 3.141592653
 #define ERROR_LIMIT 0.2
 #define LOOP_RATE_PLAN 10
@@ -20,7 +21,7 @@ void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
 void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add by CJ
-void chatterCallback_crop_distance(const geometry_msgs::Point32 &msg);  //add by CJ
+void chatterCallback_crop_distance(const de_lidar::Lidar &msg);  //add by CJ
 void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
 void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
 void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix);
@@ -147,7 +148,7 @@ int main(int argc, char **argv)
 	ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 1,chatterCallback_mode);
 	ros::Subscriber extrafunction_sub = nh.subscribe("/mavros/extra_function_receiver/extra_function_receiver", 1,chatterCallback_extra_function);
 	ros::Subscriber obstacle_sub = nh.subscribe("/laser_send",1,chatterCallback_obstacle);
-	ros::Subscriber crop_distance_sub = nh.subscribe("/crop_dist",1,chatterCallback_crop_distance);
+	ros::Subscriber crop_distance_sub = nh.subscribe("/lidar",1,chatterCallback_crop_distance);
 	ros::Subscriber fly_direction_sub = nh.subscribe("/offboard/direction", 1,chatterCallback_fly_direction);
 	
 	ros::Rate loop_rate(LOOP_RATE_PLAN);
@@ -783,18 +784,18 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 }
 
 //Subscribe crop distance msg by CJ
-void chatterCallback_crop_distance(const geometry_msgs::Point32 &msg)
+void chatterCallback_crop_distance(const de_lidar::Lidar &msg)
 {
-	if(msg.x <= -1.5)
+	if(msg.distance >= 1.0)
 	{
 		obstacle_avoid_height_enable = true;
 	}else
 	{
 		obstacle_avoid_height_enable = false;
 	}
-	laser_height = -msg.x;
-	height_confidence1 = msg.y;
-	height_confidence2 = msg.z;
+	laser_height = msg.distance;
+	height_confidence1 = 1.0;
+	height_confidence2 = 1.0;
 
 	lidar_counter += 1;
 	if(lidar_counter > 20)

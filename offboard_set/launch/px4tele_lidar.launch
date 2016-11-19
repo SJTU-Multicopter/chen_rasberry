@@ -19,15 +19,11 @@
 		<!-- arg name="log_output" value="$(arg log_output)" / -->
 	</include>
 
-        <node name="rplidarNode1"          pkg="rplidar_ros"  type="rplidarNode">
-	        <param name="serial_port"         type="string" value="/dev/Lidar"/>
-	        <param name="serial_baudrate"     type="int"    value="115200"/>
-	        <param name="frame_id"            type="string" value="laser1"/>
-	        <param name="inverted"            type="bool"   value="false"/>
-	        <param name="angle_compensate"    type="bool"   value="true"/>
- 			<remap from="scan" to="scan_vertical"/>
 
-        </node>
+  	<node pkg="de_lidar" name="tf20_node" type="tf20_node" output="screen">
+    	<param name="device" type="string" value="/dev/Lidar"/>
+ 	</node> 
+
 
         <node pkg="urg_node" name="urg" type="urg_node">
 		    <param name="calibrate_time" type="bool" value="false"/>
@@ -41,8 +37,6 @@
 
 	 <node name="find_obstacle"          pkg="rplidar_ros"  type="find_min_distance"/>
 
-        <node pkg="crop_height" type="crop_height" name="crop_height">
-        </node>
         <node name="receive_setpoints" pkg="offboard_set" type="receive_setpoints" output="screen">
         </node>
         <node name="process_setpoints" pkg="offboard_set" type="process_setpoints" output="screen">
