@@ -10,9 +10,9 @@
 #include "std_msgs/String.h"   //new
 #include "std_msgs/Float32.h"
 #include "geometry_msgs/Point32.h"
-#include "de_lidar/Lidar.h"
+#include "lidar_driver/Lidar.h"
 #define Pi 3.141592653
-#define ERROR_LIMIT 0.2
+#define ERROR_LIMIT 4
 #define LOOP_RATE_PLAN 10
 using namespace Eigen;
 
@@ -21,7 +21,7 @@ void chatterCallback_mode(const mavros::State &msg);
 void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
 void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
 void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add by CJ
-void chatterCallback_crop_distance(const de_lidar::Lidar &msg);  //add by CJ
+void chatterCallback_crop_distance(const lidar_driver::Lidar &msg);  //add by CJ
 void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
 void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
 void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix);
@@ -784,7 +784,7 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 }
 
 //Subscribe crop distance msg by CJ
-void chatterCallback_crop_distance(const de_lidar::Lidar &msg)
+void chatterCallback_crop_distance(const lidar_driver::Lidar &msg)
 {
 	if(msg.distance.data >= 1.0)
 	{

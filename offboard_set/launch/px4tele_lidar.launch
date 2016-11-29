@@ -20,9 +20,7 @@
 	</include>
 
 
-  	<node pkg="de_lidar" name="tf20_node" type="tf20_node" output="screen">
-    	<param name="device" type="string" value="/dev/Lidar"/>
-    	<param name="frequency" type="int" value="50"/>
+  	<node pkg="lidar_driver" name="leddar_node" type="leddar_node" output="screen">
  	</node> 
 
 

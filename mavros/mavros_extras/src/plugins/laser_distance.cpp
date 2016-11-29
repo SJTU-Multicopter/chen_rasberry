@@ -4,7 +4,7 @@
 #include "std_msgs/Float32.h" 
 #include <ros/console.h>
 #include "geometry_msgs/Point32.h"
-#include "de_lidar/Lidar.h"
+#include "lidar_driver/Lidar.h"
 
 namespace mavplugin{
 
@@ -68,7 +68,7 @@ private:
         laser_distance_send(obstacle_distance,obstacle_angle,crop_dist,confidence);
     }
 
-    void crop_distance_send_cb(const de_lidar::Lidar &msg){
+    void crop_distance_send_cb(const lidar_driver::Lidar &msg){
         crop_dist = msg.distance.data;
         confidence = msg.amplitude.data;  
         laser_distance_send(obstacle_distance,obstacle_angle,crop_dist,confidence);

@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="lidar_driver" name="leddar_node" type="leddar_node" output="screen" /> 
+  
+</launch>
+
