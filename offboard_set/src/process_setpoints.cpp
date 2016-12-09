@@ -97,6 +97,8 @@ float stop_px = 0.0;  //add by CJ
 float stop_py = 0.0;  //add by CJ
 float stop_ph = 0.0;  //add by CJ
 float stop_yaw = 0.0;  //add by CJ
+float stop_start_px = 0.0;  //add by CJ
+float stop_start_py = 0.0;  //add by CJ
 
 int lidar_counter = 0;
 float laser_height_last = 0.0;
@@ -308,11 +310,12 @@ int main(int argc, char **argv)
 			/*set height*/
 			if(laser_fly_height_enable && height_lidar_running) 
 			{
-				float delt_laser_height= (new_setpoint_ph - laser_height) * height_confidence1 * height_confidence2;
-
+				/*float delt_laser_height= (new_setpoint_ph - laser_height) * height_confidence1 * height_confidence2;
 				if(fabs(delt_laser_height) < ERROR_LIMIT) processed_setpoint.ph = delt_laser_height + current_ph;
 				else if(delt_laser_height >= ERROR_LIMIT) processed_setpoint.ph = ERROR_LIMIT + current_ph;
 				else processed_setpoint.ph = current_ph - ERROR_LIMIT;
+				*/
+				processed_setpoint.ph = new_setpoint_ph;
 			}
 			else processed_setpoint.ph = new_setpoint_ph;
 
@@ -325,20 +328,37 @@ int main(int argc, char **argv)
 		//obstacle avoidance by CJ
 		if(manual_avoid)
 		{
-			local_pos_stop = obstacle_pos_local - obstacle_pos_r_local.normalized() * 5.0;
+			local_pos_stop = obstacle_pos_local - obstacle_pos_r_local.normalized() * 3.0;
+			stop_start_px = processed_setpoint.px;
+			stop_start_py = processed_setpoint.py;
 
 			stop_px = local_pos_stop(0);
 			stop_py = local_pos_stop(1);
 			stop_ph = current_ph;
 			stop_yaw = current_yaw;
 
-
+			bool delay = false;
+			int count = 0;
+			while(offboard_ready && ros::ok() && !delay)
+			{
+				count ++;
+				if(count>15) delay=true;
+				ros::spinOnce();
+				loop_rate.sleep();
+			}
 			while(offboard_ready && ros::ok() && obstacle)
 			{
-				processed_setpoint.px = stop_px;
-				processed_setpoint.py = stop_py;
-				processed_setpoint.ph = stop_ph;
-				processed_setpoint.yaw = stop_yaw; 
+				//for(int kk = 0; kk < 40; kk++)
+				//{
+				//	processed_setpoint.px = (1 - kk/9) * stop_start_px + kk/9 * stop_px;
+				//	processed_setpoint.py = (1 - kk/9) * stop_start_py + kk/9 * stop_py;
+				//       processed_setpoint.ph = new_setpoint_ph;
+				//	processed_setpoint.yaw = new_setpoint_yaw; 
+				//}
+				processed_setpoint.px = current_px;
+				processed_setpoint.py = current_py;
+				processed_setpoint.ph = new_setpoint_ph;
+				processed_setpoint.yaw = new_setpoint_yaw; 
 				offboard_pub.publish(processed_setpoint);
 				ros::spinOnce();  
 				loop_rate.sleep();
@@ -751,8 +771,8 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 	laser_angle = msg.angle;
 
 	direction = next_pos - local_pos;
-	obstacle_pos_body(0) = laser_distance * cosf(laser_angle / 180.0 * Pi + Pi/2);
-	obstacle_pos_body(1) = laser_distance * sinf(laser_angle / 180.0 * Pi + Pi/2);
+	obstacle_pos_body(0) = laser_distance * cosf(laser_angle);
+	obstacle_pos_body(1) = laser_distance * sinf(laser_angle);
 	obstacle_pos_body(2) = 0.0;
 	rotate(current_yaw, obstacle_pos_body, obstacle_pos_r_local);
 	obstacle_pos_local = local_pos + obstacle_pos_r_local;

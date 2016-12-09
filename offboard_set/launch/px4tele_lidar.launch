@@ -21,7 +21,8 @@
 
 
   	<node pkg="lidar_driver" name="leddar_node" type="leddar_node" output="screen">
- 	</node> 
+		<param name="device" type="string" value="Lidar"/> 
+	</node> 
 
 
         <node pkg="urg_node" name="urg" type="urg_node">
@@ -34,8 +35,9 @@
 		</node> 
         
 
-	 <node name="find_obstacle"          pkg="rplidar_ros"  type="find_min_distance"/>
+	 <node name="find_obstacle"          pkg="laserscan"  type="find_min_distance"/>
 
+	 <node name="scan_projector"          pkg="laserscan"  type="scan_projector"/>
         <node name="receive_setpoints" pkg="offboard_set" type="receive_setpoints" output="screen">
         </node>
         <node name="process_setpoints" pkg="offboard_set" type="process_setpoints" output="screen">
