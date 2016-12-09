@@ -97,6 +97,8 @@ float stop_px = 0.0;  //add by CJ
 float stop_py = 0.0;  //add by CJ
 float stop_ph = 0.0;  //add by CJ
 float stop_yaw = 0.0;  //add by CJ
+float stop_start_px = 0.0;  //add by CJ
+float stop_start_py = 0.0;  //add by CJ
 
 int lidar_counter = 0;
 float laser_height_last = 0.0;
@@ -129,18 +131,17 @@ float MAX_j = 2.5;
 float max_a = 0;
 
 mavros_extras::PositionSetpoint processed_setpoint;
-geometry_msgs::TwistStamped vel_setpoint;
 std_msgs::Float32 standard_height;
 mavros_extras::LaserDistance record_values;
 
 int main(int argc, char **argv)  
 {  
+	
 	ros::init(argc, argv, "process_setpoints");
 
 	ros::NodeHandle nh;  
 	
-	ros::Publisher offboard_pos_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/position_setpoints_local", 2);  
-	ros::Publisher offboard_vel_pub = nh.advertise<geometry_msgs::TwistStamped>("offboard/velocity_setpoints_local", 2);  
+	ros::Publisher offboard_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/setpoints_local", 2);  
 	ros::Publisher standard_height_pub = nh.advertise<std_msgs::Float32>("offboard/standard_height", 2);
 	ros::Publisher record_paras_pub = nh.advertise<mavros_extras::LaserDistance>("offboard/record",2);
 
@@ -328,30 +329,37 @@ int main(int argc, char **argv)
 		if(manual_avoid)
 		{
 			local_pos_stop = obstacle_pos_local - obstacle_pos_r_local.normalized() * 3.0;
+			stop_start_px = processed_setpoint.px;
+			stop_start_py = processed_setpoint.py;
 
 			stop_px = local_pos_stop(0);
 			stop_py = local_pos_stop(1);
 			stop_ph = current_ph;
 			stop_yaw = current_yaw;
 
-			// bool delay = false;
-			// int count = 0;
-			// while(offboard_ready && ros::ok() && !delay)
-			// {
-			// 	count ++;
-			// 	if(count>15) delay=true;
-			// 	ros::spinOnce();
-			// 	loop_rate.sleep();
-			// }
+			bool delay = false;
+			int count = 0;
+			while(offboard_ready && ros::ok() && !delay)
+			{
+				count ++;
+				if(count>15) delay=true;
+				ros::spinOnce();
+				loop_rate.sleep();
+			}
 			while(offboard_ready && ros::ok() && obstacle)
 			{
-				vel_setpoint.twist.linear.x = 0.0;
-			    vel_setpoint.twist.linear.y = 0.0;
-			    vel_setpoint.twist.linear.z = 0.0;
-			    vel_setpoint.twist.angular.x = 0.0;
-			    vel_setpoint.twist.angular.y = 0.0;
-			    vel_setpoint.twist.angular.z = 0.0;
-				offboard_vel_pub.publish(vel_setpoint);
+				//for(int kk = 0; kk < 40; kk++)
+				//{
+				//	processed_setpoint.px = (1 - kk/9) * stop_start_px + kk/9 * stop_px;
+				//	processed_setpoint.py = (1 - kk/9) * stop_start_py + kk/9 * stop_py;
+				//       processed_setpoint.ph = new_setpoint_ph;
+				//	processed_setpoint.yaw = new_setpoint_yaw; 
+				//}
+				processed_setpoint.px = current_px;
+				processed_setpoint.py = current_py;
+				processed_setpoint.ph = new_setpoint_ph;
+				processed_setpoint.yaw = new_setpoint_yaw; 
+				offboard_pub.publish(processed_setpoint);
 				ros::spinOnce();  
 				loop_rate.sleep();
 			}
@@ -359,7 +367,7 @@ int main(int argc, char **argv)
 					  
 		}
 
-		offboard_pos_pub.publish(processed_setpoint);
+		offboard_pub.publish(processed_setpoint);
 		ros::spinOnce();  
 		loop_rate.sleep();  
 	}
