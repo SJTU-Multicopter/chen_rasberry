@@ -154,21 +154,212 @@ int main(int argc, char **argv)
 	
 	ros::Rate loop_rate(LOOP_RATE_PLAN);
 
+	
+
+	int method = 1;
+	float avrg_vel = 1.0;
+	float time2fly = 0.0;
+	float current_t = 0.0;
+	float avrg_vx = 0.0;
+	float avrg_vy = 0.0;
+	float theta = 0.0;
+	int stage = 1;
+	VectorXf nodes_t = VectorXf::Zero(8);
+	VectorXf nodes_p = VectorXf::Zero(8);
+	VectorXf nodes_v = VectorXf::Zero(8);
+
+	Matrix<float, 3, 3> Paras_matrix(3,3);
 	while (ros::ok())  
-	{  	
-		geometry_msgs::TwistStamped cmd;
-		Vector3f direction = (new_setpoint_px-current_px, new_setpoint_py-current_py, new_setpoint_ph-current_ph);
-		direction = direction
-		float vel = 0.4;
-		
-		cmd.twist.linear.x = vel * direction(0);
-		cmd.twist.linear.y = vel * direction(1);
-		cmd.twist.linear.z = vel * direction(2);
-		cmd.twist.angular.x = 0;
-		cmd.twist.angular.y = 0;
-		cmd.twist.angular.z = 0;
-		offboard_vel_pub.publish(cmd);
-		
+	{  
+		//tell the standard height, measured by barometer or rplidar
+		if(laser_fly_height_enable && height_lidar_running) standard_height.data = laser_height;
+		else standard_height.data = current_ph;
+		standard_height_pub.publish(standard_height);
+
+		record_values.min_distance = start_pos[0];
+		record_values.angle = start_pos[1];
+		record_values.laser_x = ended_pos[0];
+		record_values.laser_y = ended_pos[1];
+		record_paras_pub.publish(record_values);
+
+		if(new_setpoint_yaw < -100)
+		{
+			if(start_bool) 
+			{
+				start_yaw = current_yaw;
+				start_bool = false;
+			}
+
+			processed_setpoint.px = current_px;
+			processed_setpoint.py = current_py;
+			processed_setpoint.yaw = start_yaw;
+
+			start_pos[0] = current_px;
+			start_pos[1] = current_py;
+			ended_pos[0] = current_px;
+			ended_pos[1] = current_py;
+			//take off height set
+ 
+			if(new_setpoint_ph - standard_height.data > 0.3) processed_setpoint.ph = current_ph + 0.8;
+			else if(standard_height.data - new_setpoint_ph > 0.3) processed_setpoint.ph = current_ph - 0.4;
+			else processed_setpoint.ph = standard_height.data;
+
+			ploylines_flying = false;
+
+		}
+		else if(new_setpoint_ph  > -1001.0 && new_setpoint_ph < -999.0)
+		{
+			processed_setpoint.px = current_px;
+			processed_setpoint.py = current_py;
+			processed_setpoint.ph = current_ph;
+			processed_setpoint.yaw = current_yaw;
+
+			start_bool = true;
+
+			ploylines_flying = false;
+		}
+		else if(new_setpoint_ph < -1994)
+		{
+			processed_setpoint.px = new_setpoint_px;
+			processed_setpoint.py = new_setpoint_py;
+			processed_setpoint.ph = new_setpoint_ph;
+			processed_setpoint.yaw = new_setpoint_yaw;
+			start_bool = true;
+
+			ploylines_flying = false;
+		}
+		else//ph==-2 included, this will process in publish_setpoints.cpp
+		{
+			ploylines_flying = true;
+
+			if(different_sp_rcv){//traj init
+				different_sp_rcv = false;
+
+				float length = distance(start_pos[0], start_pos[1], new_setpoint_px, new_setpoint_py);
+				
+				time2fly = length/avrg_vel;
+				avrg_vx = (ended_pos[0] - current_px) / time2fly;
+				avrg_vy = (ended_pos[1] - current_py) / time2fly;
+				
+				current_t = 0;     
+
+				stage = 1;
+				nodes_t = VectorXf::Zero(8);
+				nodes_p = VectorXf::Zero(8);
+				nodes_v = VectorXf::Zero(8);
+				float dx = ended_pos[0] - start_pos[0];
+				float dy = ended_pos[1] - start_pos[1];
+				theta = atan2(dy, dx);
+				method = trapezoidalTraj(0, length, MAX_v, MAX_pitch_deg, MAX_j,nodes_t, nodes_v, nodes_p, &max_a);
+				std::cout << "\nnodes_t:\n" << nodes_t << std::endl;
+				std::cout << "\nnodes_p:\n" << nodes_p << std::endl;
+				std::cout << "\nnodes_v:\n" << nodes_v << std::endl;
+				if(method == 1){//non const vel
+					trajectory_Paras_generation_i(0, start_pos[0], new_setpoint_px,time2fly, Paras_matrix);
+					trajectory_Paras_generation_i(1, start_pos[1], new_setpoint_py,time2fly, Paras_matrix);
+
+				}
+			}//end of init
+			if(method == 1){//non const vel
+				if(current_t < time2fly){
+					processed_setpoint.px = p_optimal_calculate(0,Paras_matrix(0,0),Paras_matrix(0,1),Paras_matrix(0,2),current_t, start_pos[0]); 
+					processed_setpoint.py = p_optimal_calculate(1,Paras_matrix(1,0),Paras_matrix(1,1),Paras_matrix(1,2),current_t, start_pos[1]);
+				}
+				else{
+					processed_setpoint.px = new_setpoint_px;
+					processed_setpoint.py = new_setpoint_py;
+				}
+			}
+			else{//trapezoidal
+				
+				if(stage < 8){
+					if(current_t > nodes_t(stage)){
+						stage++;
+					}
+					// float j = jerkPlan(MAX_j, stage);
+					// float a = accPlan(MAX_j, max_a, current_t, stage, nodes_t);
+					// float v = velPlan(MAX_j, max_a, current_t, stage, nodes_t, nodes_v);
+					float p = posPlan(MAX_j, max_a, current_t, stage, nodes_t, nodes_v, nodes_p);
+					// float j_x = j * cos(theta);
+					// float j_y = j * sin(theta);
+//          float a_x = a * cos(theta);
+//          float a_y = a * sin(theta);
+//          float v_x = v * cos(theta);
+//          float v_y = v * sin(theta);
+					float p_x = p * cos(theta) + start_pos[0];
+					float p_y = p * sin(theta) + start_pos[1];
+//          ROS_INFO("t: %f stage: %d\njx: %f ax: %f vx: %f px: %f\njy: %f ay: %f vy: %f py: %f\n", 
+//            current_t, stage, 
+//            j_x, a_x, v_x, p_x, 
+//            j_y, a_y, v_y, p_y);
+					processed_setpoint.px = p_x;
+					processed_setpoint.py = p_y;
+				}
+				else{
+					processed_setpoint.px = new_setpoint_px;
+					processed_setpoint.py = new_setpoint_py;
+
+				}
+			}
+//      	ROS_INFO("method: %d x_sp: %f y_sp: %f", method, processed_setpoint.px, processed_setpoint.py);
+//      	processed_setpoint.px = new_setpoint_px;
+//      	processed_setpoint.py = new_setpoint_py;
+//      	processed_setpoint.ph = new_setpoint_ph;
+//      	processed_setpoint.yaw = new_setpoint_yaw;
+			/*set height*/
+			if(laser_fly_height_enable && height_lidar_running) 
+			{
+				/*float delt_laser_height= (new_setpoint_ph - laser_height) * height_confidence1 * height_confidence2;
+				if(fabs(delt_laser_height) < ERROR_LIMIT) processed_setpoint.ph = delt_laser_height + current_ph;
+				else if(delt_laser_height >= ERROR_LIMIT) processed_setpoint.ph = ERROR_LIMIT + current_ph;
+				else processed_setpoint.ph = current_ph - ERROR_LIMIT;
+				*/
+				processed_setpoint.ph = new_setpoint_ph;
+			}
+			else processed_setpoint.ph = new_setpoint_ph;
+
+			processed_setpoint.yaw = new_setpoint_yaw;
+
+		}//end of if(new_setpoint_ph  > -1.5 && new_setpoint_ph < 0)
+
+		current_t += 1.0 / LOOP_RATE_PLAN;
+
+		//obstacle avoidance by CJ
+		if(manual_avoid)
+		{
+			local_pos_stop = obstacle_pos_local - obstacle_pos_r_local.normalized() * 3.0;
+
+			stop_px = local_pos_stop(0);
+			stop_py = local_pos_stop(1);
+			stop_ph = current_ph;
+			stop_yaw = current_yaw;
+
+			// bool delay = false;
+			// int count = 0;
+			// while(offboard_ready && ros::ok() && !delay)
+			// {
+			// 	count ++;
+			// 	if(count>15) delay=true;
+			// 	ros::spinOnce();
+			// 	loop_rate.sleep();
+			// }
+			while(offboard_ready && ros::ok() && obstacle)
+			{
+				vel_setpoint.twist.linear.x = 0.0;
+			    vel_setpoint.twist.linear.y = 0.0;
+			    vel_setpoint.twist.linear.z = 0.0;
+			    vel_setpoint.twist.angular.x = 0.0;
+			    vel_setpoint.twist.angular.y = 0.0;
+			    vel_setpoint.twist.angular.z = 0.0;
+				offboard_vel_pub.publish(vel_setpoint);
+				ros::spinOnce();  
+				loop_rate.sleep();
+			}
+
+					  
+		}
+
+		offboard_pos_pub.publish(processed_setpoint);
 		ros::spinOnce();  
 		loop_rate.sleep();  
 	}
