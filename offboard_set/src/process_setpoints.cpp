@@ -2,6 +2,7 @@
 #include <math.h>
 #include "mavros_extras/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/TwistStamped.h"
 #include "mavros/State.h"
 #include "mavros_extras/ExtraFunctionReceiver.h"
 #include "mavros_extras/LaserDistance.h"
