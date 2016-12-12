@@ -89,6 +89,7 @@ bool obstacle_avoid_auto_enable = false;
 bool laser_fly_height_enable = false;
 
 //lidar running check
+int timer_counter = 0;
 bool height_lidar_running = false;
 bool obstacle_lidar_running = false;
 bool height_lidar_check_flag = false;
@@ -382,19 +383,6 @@ int main(int argc, char **argv)
 	return 0;  
 }  
 
-int float_near(float a, float b, float dif)
-{
-	float t = a-b;
-	if(t < 0){
-		t = -t;
-	}
-	if(t < dif){
-		return 1;//is near
-	}
-	else{
-		return 0;
-	}
-}
 void Callback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg)
 {
 	new_setpoint_px = msg.px;
@@ -430,10 +418,45 @@ void Callback_mode(const mavros::State &msg)
 	{
 		offboard_ready = false;  
 	}
+
+	//use as timer, 1Hz
+	timer_counter += 1;
+	if(timer_counter > 5)
+	{
+		timer_counter = 0;
+
+		if(height_lidar_check_flag) 
+		{
+			height_lidar_check_flag = false;
+			height_lidar_running = true;
+		}
+		else
+		{
+			height_lidar_running = false;
+		}
+
+		if(obstacle_lidar_check_flag)
+		{
+			obstacle_lidar_check_flag = false;
+			obstacle_lidar_running = true;
+		}
+		else
+		{
+			obstacle_lidar_running = false;
+		} 
+	}
 }
 
 void Callback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
 {
+	if(msg.obs_avoid_enable != 0)  obstacle_avoid_enable = true;
+	else obstacle_avoid_enable = false;
+
+	if(msg.obs_avoid_enable == 1)  obstacle_avoid_auto_enable = false; 
+	if(msg.obs_avoid_enable ==2)  obstacle_avoid_auto_enable = true;
+
+	if(msg.laser_height_enable == 1) laser_fly_height_enable = true;
+	else laser_fly_height_enable = false;
 
 }
 
@@ -450,11 +473,22 @@ void Callback_obstacle(const mavros_extras::LaserDistance &msg)
 	obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
 	obstacle_pos_body(2) = 0.0;
 	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
+
+	obstacle_lidar_check_flag = true;
 }
 
 void Callback_lidar(const lidar_driver::Lidar &msg)
 {
-
+	if(msg.distance.data >= 1.0)
+	{
+		obstacle_avoid_height_enable = true;
+	}else
+	{
+		obstacle_avoid_height_enable = false;
+	}
+	lidar_height = msg.distance.data;
+	
+	height_lidar_check_flag = true;
 }
 
 bool isArrived(Vector3f& local, Vector3f& goal)
