@@ -3,6 +3,7 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/TwistStamped.h" 
 
+
 geometry_msgs::PoseStamped pos_msg;
 geometry_msgs::TwistStamped vel_msg;
 
@@ -19,8 +20,8 @@ int main(int argc, char **argv)
 
 	ros::NodeHandle nh;  
 	
-	ros::Publisher offboard_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("offboard/setpoints", 5);  
-	ros::Publisher offboard_vel_pub = nh.advertise<geometry_msgs::TwistStamped>("offboard/velocity", 5);  
+	ros::Publisher offboard_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("/offboard/setpoints", 5);  
+	ros::Publisher offboard_vel_pub = nh.advertise<geometry_msgs::TwistStamped>("/offboard/velocity", 5);  
 	ros::Subscriber setpoint_pos_sub = nh.subscribe("/offboard/position_setpoints_local", 5, chatterCallback_receive_pos_setpoint_local);
 	ros::Subscriber setpoint_vel_sub = nh.subscribe("/offboard/velocity_setpoints_local", 5, chatterCallback_receive_vel_setpoint_local);
 
