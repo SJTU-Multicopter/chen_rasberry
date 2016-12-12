@@ -9,8 +9,8 @@ geometry_msgs::TwistStamped vel_msg;
 bool vel_mode = false;
 bool pos_mode = false;
 
-void chatterCallback_receive_pos_setpoint_local(const mavros_extras::PositionSetpoint &setpoint);
-void chatterCallback_receive_vel_setpoint_local(const geometry_msgs::TwistStamped &setpoint);
+void Callback_receive_pos_setpoint_local(const mavros_extras::PositionSetpoint &setpoint);
+void Callback_receive_vel_setpoint_local(const geometry_msgs::TwistStamped &setpoint);
 
 int main(int argc, char **argv)  
 {  
@@ -21,8 +21,8 @@ int main(int argc, char **argv)
 	
 	ros::Publisher offboard_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("offboard/setpoints", 5);  
 	ros::Publisher offboard_vel_pub = nh.advertise<geometry_msgs::TwistStamped>("offboard/velocity", 5);  
-	ros::Subscriber setpoint_pos_sub = nh.subscribe("/offboard/position_setpoints_local", 5, chatterCallback_receive_pos_setpoint_local);
-	ros::Subscriber setpoint_vel_sub = nh.subscribe("/offboard/velocity_setpoints_local", 5, chatterCallback_receive_vel_setpoint_local);
+	ros::Subscriber setpoint_pos_sub = nh.subscribe("/offboard/position_setpoints_local", 5, Callback_receive_pos_setpoint_local);
+	ros::Subscriber setpoint_vel_sub = nh.subscribe("/offboard/velocity_setpoints_local", 5, Callback_receive_vel_setpoint_local);
 
 	ros::Rate loop_rate(16);
 	while (ros::ok())  
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 	return 0;  
 }  
 
-void chatterCallback_receive_pos_setpoint_local(const mavros_extras::PositionSetpoint &setpoint)
+void Callback_receive_pos_setpoint_local(const mavros_extras::PositionSetpoint &setpoint)
 {
 	pos_msg.header.stamp = ros::Time::now();
 	pos_msg.pose.position.x = setpoint.px;
@@ -59,16 +59,16 @@ void chatterCallback_receive_pos_setpoint_local(const mavros_extras::PositionSet
 	vel_mode = false;
 }
 
-void chatterCallback_receive_vel_setpoint_local(const geometry_msgs::TwistStamped &setpoint)
+void Callback_receive_vel_setpoint_local(const geometry_msgs::TwistStamped &setpoint)
 {
 	vel_msg.header.stamp = ros::Time::now();
 	vel_msg.twist.linear.x = setpoint.twist.linear.x;;
-    vel_msg.twist.linear.y = setpoint.twist.linear.y;
-    vel_msg.twist.linear.z = setpoint.twist.linear.z;
-    vel_msg.twist.angular.x = 0.0;
-    vel_msg.twist.angular.y = 0.0;
-    vel_msg.twist.angular.z = 0.0;
+	vel_msg.twist.linear.y = setpoint.twist.linear.y;
+	vel_msg.twist.linear.z = setpoint.twist.linear.z;
+	vel_msg.twist.angular.x = 0.0;
+	vel_msg.twist.angular.y = 0.0;
+	vel_msg.twist.angular.z = 0.0;
 
-    pos_mode = false;
+	pos_mode = false;
 	vel_mode = true;
 }

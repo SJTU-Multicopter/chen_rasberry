@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 		//send new route point
 		else if(new_setpoint_writed && (msg_seq - send_counter) >= -1 && send_counter <= total_num)
 		{  		    
-				routepoint_pub.publish(setpoint);
+			routepoint_pub.publish(setpoint);
 		}
 		else 
 		{   

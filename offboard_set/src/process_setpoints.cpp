@@ -6,179 +6,382 @@
 #include "mavros/State.h"
 #include "mavros_extras/ExtraFunctionReceiver.h"
 #include "mavros_extras/LaserDistance.h"
-#include "mavros_extras/FlyDirection.h"
 #include "Eigen/Dense"
-#include "std_msgs/String.h"   //new
+#include "std_msgs/String.h"  
 #include "std_msgs/Float32.h"
-#include "geometry_msgs/Point32.h"
-#include "lidar_driver/Lidar.h"
-#define Pi 3.141592653
-#define ERROR_LIMIT 4
-#define LOOP_RATE_PLAN 10
+
+#define Pi 					3.141592653
+#define NEAR_DISTANCE 		0.6
+#define OBSTACLE_REGION 	6.0
+#define SPEED_DOWN_REGION	2.0
+#define LOOP_RATE_PLAN 		10
+
+#define STATE_IDLE 			0
+#define STATE_HOLDING 		1
+#define STATE_TAKEOFF 		2
+#define STATE_MOVING 		3
+#define STATE_LANDING 		4
+
+#define MOVING_SPEED_UP 	1
+#define MOVING_SPEED_DOWN 	2
+#define MOVING_NORMAL		0
+
 using namespace Eigen;
 
-void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
-void chatterCallback_mode(const mavros::State &msg);
-void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
-void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
-void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add by CJ
-void chatterCallback_crop_distance(const lidar_driver::Lidar &msg);  //add by CJ
-void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
-void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
-void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix);
+void Callback_local_position(const geometry_msgs::PoseStamped &msg);
+void Callback_mode(const mavros::State &msg);
+void Callback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
+void Callback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
+void Callback_obstacle(const mavros_extras::LaserDistance &msg);  
+void Callback_lidar(const lidar_driver::Lidar &msg);  
+void rotate_2D(float yaw, const Vector2f& input, Vector2f& output); 
+void rotate_3D(float yaw,  const Vector3f& input,  Vector3f& output);
+bool isArrived(Vector3f& local, Vector3f& goal);
 
-float posPlan(float max_jerk, float max_acc, float t, 
-	int stage, const VectorXf& nodes_time, 
-	const VectorXf& nodes_vel, const VectorXf& nodes_pos);
+Vector3f local_pos(0.0,0.0);
+Vector3f goal_pos(0.0,0.0); 
+Vector3f obstacle_pos(0.0,0.0); 
+Vector3f obstacle_pos_body(0.0,0.0);
+Vector3f obstacle_pos_local(0.0,0.0);
 
-float velPlan(float max_jerk, float max_acc, float t, 
-	int stage, const VectorXf& nodes_time, const VectorXf& nodes_vel);
-
-float accPlan(float max_jerk, float max_acc, float t, 
-	int stage, const VectorXf& nodes_time);
-
-float jerkPlan(float max_jerk, int stage);
-
-int trapezoidalTraj(float start_pos, float ended_pos, 
-	float MAX_v, float MAX_pitch_deg, float MAX_j,
-	VectorXf& nodes_time, 
-	VectorXf& nodes_vel, 
-	VectorXf& nodes_pos,
-	float* max_acc);
-
-void trajectory_Paras_generation_i(int num, float p0, float pf, float T, Matrix<float, 3, 3>& Paras_matrix);//num 0,1,2 reoresents  x, y, z
-float j_optimal_calculate(int num, float alfa, float beta, float gamma, float t);
-float p_optimal_calculate(int num, float alfa, float beta, float gamma, float t, float p0);
-float v_optimal_calculate(int num, float alfa, float beta, float gamma, float t);
-float a_optimal_calculate(int num, float alfa, float beta, float gamma, float t);
-float p_simple_calculate(int num, float t, float vel, float p0);
-float distance(float x0, float y0, float x1, float y1);
-
-
-
-bool offboard_ready = false;
-bool obstacle_avoid_enable = false;  //add by CJ
-bool obstacle_avoid_height_enable = false;  //add by CJ
-bool obstacle_avoid_auto_enable = false;  //add by CJ
-bool auto_avoid_processing = false; //add by CJ
-bool manual_avoid = false;  //add by CJ 
-bool fly_processing = false;  //add by CJ
-bool fly_direction_enable = false; //add by CJ
-bool disturb = false;  //add by  CJ
-bool obstacle = false;  //add by CJ
-bool switch_offboard = false; //add by CJ
-bool laser_fly_height_enable = false;
-bool height_lidar_running = false;
-bool obstacle_lidar_running = false;
-bool height_lidar_check_flag = false;
-bool obstacle_lidar_check_flag = false;
-int timer_counter = 0;
-int disturb_counter = 0;
-
-Vector3f local_pos(0.0,0.0,0.0);  //add by CJ
-Vector3f body_pos(0.0,0.0,0.0);  //add by CJ
-Vector3f local_pos_stop(0.0,0.0,0.0);  //add by CJ
-Vector3f body_pos_stop(0.0,0.0,0.0);  //add by CJ
-Matrix<float, 4, 2> obstacle_avoid_trajectory;  //add by CJ
-Vector3f next_pos(0.0,0.0,0.0);  //add by CJ
-Vector3f obstacle_pos_body(0.0,0.0,0.0);
-Vector3f obstacle_pos_local(0.0,0.0,0.0);
-Vector3f obstacle_pos_r_local(0.0,0.0,0.0);
-
-
-int fly_direction = 0; //add by CJ
-int auto_avoid_count = 0;  //add by CJ
-float obstacle_distance = 20.0;  //add by CJ
-float obstacle_angle = 0.0;  //add by CJ
-float laser_distance = 6.0;  //add by CJ
-float laser_angle = 0.0;  //add by CJ
-float laser_distance_pre = 6.0;  //add by CJ
-float laser_angle_pre = 0.0;  //add by CJ
-float stop_px = 0.0;  //add by CJ
-float stop_py = 0.0;  //add by CJ
-float stop_ph = 0.0;  //add by CJ
-float stop_yaw = 0.0;  //add by CJ
-
-int lidar_counter = 0;
-float laser_height_last = 0.0;
-float laser_height = 3.0;
-float height_confidence1 = 1.0;
-float height_confidence2 = 1.0;
+float obstacle_distance = 0.0;  
+float obstacle_angle = 0.0; 
 
 float current_px = 0.0;
 float current_py = 0.0;
 float current_ph = 0.0;
 float current_yaw = 0.0;
+float lidar_height = 0.0;
 
 float new_setpoint_px = 0.0;
 float new_setpoint_py = 0.0;
 float new_setpoint_ph = 0.0;
 float new_setpoint_yaw = 0.0;
-
-float start_pos[2] = {0.0,0.0};
-float ended_pos[2] = {0.0,0.0};
+float start_px = 0.0;
+float start_py = 0.0;
 float start_ph = 0.0;
 float start_yaw = 0.0;
-bool start_bool = true;
-bool ploylines_flying = false;
 
-bool different_sp_rcv = false;
-
-float MAX_v = 3.0;
-float MAX_pitch_deg = 20.0;
-float MAX_j = 2.5;
-float max_a = 0;
-
-mavros_extras::PositionSetpoint processed_setpoint;
-geometry_msgs::TwistStamped vel_setpoint;
 std_msgs::Float32 standard_height;
-mavros_extras::LaserDistance record_values;
+
+//param for potential field
+float k_att = 7.0;
+float k_rep = 1.0;
+float k_att_new = 24.0;
+float speed = 1.0;
+
+const float velocity = 0.5;
+
+geometry_msgs::TwistStamped processed_vel_setpoint;
+mavros_extras::PositionSetpoint processed_pos_setpoint;
+
+Vector2f fly_direction(0.0,0.0); 
+
+Vector2f vec1(0.0, 0.0);
+Vector2f vec2(0.0, 0.0);
+
+bool start_bool = true;
+bool set_start_pos = false;
+bool offboard_ready = false;
+bool obstacle_avoid_enable = false;  
+bool obstacle_avoid_height_enable = false; 
+bool obstacle_avoid_auto_enable = false;  
+bool laser_fly_height_enable = false;
+
+//lidar running check
+bool height_lidar_running = false;
+bool obstacle_lidar_running = false;
+bool height_lidar_check_flag = false;
+bool obstacle_lidar_check_flag = false;
+
+//state switch
+int flight_state = 0;
+int moving_state = 0;
+bool arrived = false;
+bool goal_init = false;
 
 int main(int argc, char **argv)  
 {  
 	ros::init(argc, argv, "process_setpoints");
-
 	ros::NodeHandle nh;  
-	
 	ros::Publisher offboard_pos_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/position_setpoints_local", 2);  
-	ros::Publisher offboard_vel_pub = nh.advertise<geometry_msgs::TwistStamped>("offboard/velocity_setpoints_local", 2);  
+	ros::Publisher offboard_vel_pub = nh.advertise<geometry_msgs::TwistStamped>("offboard/velocity_setpoints_local", 2); 
 	ros::Publisher standard_height_pub = nh.advertise<std_msgs::Float32>("offboard/standard_height", 2);
-	ros::Publisher record_paras_pub = nh.advertise<mavros_extras::LaserDistance>("offboard/record",2);
 
-	ros::Subscriber setpoint_sub = nh.subscribe("/offboard/setpoints_raw", 2, chatterCallback_receive_setpoint_raw);
-	ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
-	ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 1,chatterCallback_mode);
-	ros::Subscriber extrafunction_sub = nh.subscribe("/mavros/extra_function_receiver/extra_function_receiver", 1,chatterCallback_extra_function);
-	ros::Subscriber obstacle_sub = nh.subscribe("/laser_send",1,chatterCallback_obstacle);
-	ros::Subscriber crop_distance_sub = nh.subscribe("/lidar",1,chatterCallback_crop_distance);
-	ros::Subscriber fly_direction_sub = nh.subscribe("/offboard/direction", 1,chatterCallback_fly_direction);
-	
+	ros::Subscriber setpoint_sub = nh.subscribe("/offboard/setpoints_raw", 2, Callback_receive_setpoint_raw);
+	ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,Callback_local_position);
+	ros::Subscriber mode_sub = nh.subscribe("/mavros/state", 1,Callback_mode);
+	ros::Subscriber extrafunction_sub = nh.subscribe("/mavros/extra_function_receiver/extra_function_receiver", 1,Callback_extra_function);
+	ros::Subscriber obstacle_sub = nh.subscribe("/laser_send",1,Callback_obstacle);
+	ros::Subscriber lidar_sub = nh.subscribe("/lidar",1,Callback_lidar);
+
 	ros::Rate loop_rate(LOOP_RATE_PLAN);
 
 	while (ros::ok())  
-	{  	
-		geometry_msgs::TwistStamped cmd;
-		Vector3f direction = (new_setpoint_px-current_px, new_setpoint_py-current_py, new_setpoint_ph-current_ph);
-		direction = direction
-		float vel = 0.4;
-		
-		cmd.twist.linear.x = vel * direction(0);
-		cmd.twist.linear.y = vel * direction(1);
-		cmd.twist.linear.z = vel * direction(2);
-		cmd.twist.angular.x = 0;
-		cmd.twist.angular.y = 0;
-		cmd.twist.angular.z = 0;
-		offboard_vel_pub.publish(cmd);
+	{  
+		if(laser_fly_height_enable && height_lidar_running) standard_height.data = lidar_height;
+		else standard_height.data = current_ph;
+		standard_height_pub.publish(standard_height);
 
+		if(new_setpoint_yaw < -100)
+		// Takeoff 
+		{
+			if(start_bool) 
+			{
+				start_yaw = current_yaw;
+				start_bool = false;
+			}
+
+			if(standard_height.data < 1.0)
+			{
+				processed_pos_setpoint.px = current_px;
+				processed_pos_setpoint.py = current_py;
+				processed_pos_setpoint.yaw = start_yaw;
+			}else
+			{
+				if(!set_start_pos)
+				{
+					start_px = current_px;
+					start_py = current_py;
+					set_start_pos = true
+				}
+				processed_pos_setpoint.px = start_px;
+				processed_pos_setpoint.py = start_py;
+				processed_pos_setpoint.yaw = start_yaw;
+			}
+				
+			//take off height set
+			if(new_setpoint_ph - standard_height.data > 0.3) processed_pos_setpoint.ph = current_ph + 0.8;
+			else if(standard_height.data - new_setpoint_ph > 0.3) processed_pos_setpoint.ph = current_ph - 0.4;
+			else processed_pos_setpoint.ph = standard_height.data;
+
+			//publish position setpoint
+			offboard_pos_pub.publish(processed_pos_setpoint);
+
+			flight_state = STATE_HOLDING;
+			goal_init = false;
+		}
+		else if(new_setpoint_ph  > -1001.0 && new_setpoint_ph < -999.0)
+		// ??????
+		{
+			processed_pos_setpoint.px = current_px;
+			processed_pos_setpoint.py = current_py;
+			processed_pos_setpoint.ph = current_ph;
+			processed_pos_setpoint.yaw = current_yaw;
+			start_bool = true;
+
+			//publish position setpoint
+			offboard_pos_pub.publish(processed_pos_setpoint);
+		}
+		else if(new_setpoint_ph < -1994)
+		//??????
+		{
+			processed_setpoint.px = new_setpoint_px;
+			processed_setpoint.py = new_setpoint_py;
+			processed_setpoint.ph = new_setpoint_ph;
+			processed_setpoint.yaw = new_setpoint_yaw;
+			start_bool = true;
+
+			//publish position setpoint
+			offboard_pos_pub.publish(processed_pos_setpoint);
+		}
+		else
+		{
+			//initiate goal position
+			if(!goal_init)
+			{
+				goal_pos(0) = new_setpoint_px;
+				goal_pos(1) = new_setpoint_py;
+				goal_pos(2) = 0.0;
+				goal_init = true;
+			}
+			arrived = isArrived(local_pos,goal_pos);
+
+			switch(flight_state)
+			{
+				case STATE_IDLE:
+				{
+					processed_pos_setpoint.px = current_px;
+					processed_pos_setpoint.py = current_py;
+					processed_pos_setpoint.ph = current_ph;
+					processed_pos_setpoint.yaw = current_yaw;
+					offboard_pos_pub.publish(processed_pos_setpoint);
+
+					break;
+				}
+				case STATE_HOLDING:
+				{
+					ROS_INFO("Holding");
+					for(int i = 10; ros::ok() && i > 0; --i){
+						processed_pos_setpoint.px = current_px;
+						processed_pos_setpoint.py = current_py;
+						processed_pos_setpoint.ph = current_ph;
+						processed_pos_setpoint.yaw = current_yaw;
+						offboard_pos_pub.publish(processed_pos_setpoint);
+						ros::spinOnce();
+						rate.sleep();
+					}
+
+					//update goal_pos
+					goal_pos(0) = new_setpoint_px;
+					goal_pos(1) = new_setpoint_py;
+					goal_pos(2) = 0.0;
+
+					flight_state = STATE_MOVING;
+					moving_state = MOVING_SPEED_UP;
+
+					break;
+				}
+				case STATE_MOVING:
+				{
+					if(arrived)
+					{
+						processed_vel_setpoint.twist.linear.x = 0;
+						processed_vel_setpoint.twist.linear.y = 0;
+						processed_vel_setpoint.twist.linear.z = 0;
+						processed_vel_setpoint.twist.angular.x = 0;
+						processed_vel_setpoint.twist.angular.y = 0;
+						processed_vel_setpoint.twist.angular.z = 0;
+						offboard_vel_pub.publish(processed_vel_setpoint);
+
+						flight_state = STATE_HOLDING;
+					}else
+					{
+						switch(moving_state)
+						{
+							case MOVING_SPEED_UP:
+							{
+								for(int i = 0; ros::ok() && i < 10; i++){
+									//ROS_INFO("Speed up");
+									if((goal_pos - local_pos).norm() < SPEED_DOWN_REGION)
+									{
+										moving_state = MOVING_SPEED_DOWN;
+										break;
+									}else
+									{
+										Vector3f dirction = (goal_pos - local_pos).normalized();
+										float vel = (float)i/10 * velocity;
+										
+										processed_vel_setpoint.twist.linear.x = vel * dirction(0);
+										processed_vel_setpoint.twist.linear.y = vel * dirction(1);
+										processed_vel_setpoint.twist.linear.z = 0.0;
+										processed_vel_setpoint.twist.angular.x = 0.0;
+										processed_vel_setpoint.twist.angular.y = 0.0;
+										processed_vel_setpoint.twist.angular.z = 0.0;
+										offboard_vel_pub.publish(processed_vel_setpoint);
+										ros::spinOnce();
+										rate.sleep();
+									}
+		
+								}
+								moving_state = MOVING_NORMAL;
+								ROS_INFO("Normal fly");
+								break;
+							}
+							case MOVING_SPEED_DOWN:
+							{
+								//ROS_INFO("Speed down");
+								Vector3f dirction = (goal_pos - local_pos).normalized();
+								float vel = ((goal_pos - local_pos).norm()) / SPEED_DOWN_REGION * velocity;
+								
+								processed_vel_setpoint.twist.linear.x = vel * dirction(0);
+								processed_vel_setpoint.twist.linear.y = vel * dirction(1);
+								processed_vel_setpoint.twist.linear.z = 0.0;
+								processed_vel_setpoint.twist.angular.x = 0.0;
+								processed_vel_setpoint.twist.angular.y = 0.0;
+								processed_vel_setpoint.twist.angular.z = 0.0;
+								offboard_vel_pub.publish(processed_vel_setpoint);
+								ros::spinOnce();
+								rate.sleep();
+
+								break;
+							}
+							case MOVING_NORMAL:
+							{
+								if((goal_pos - local_pos).norm() < SPEED_DOWN_REGION)
+								{
+									moving_state = MOVING_SPEED_DOWN;
+								}else
+								{
+									Vector3f dirction = (goal_pos - local_pos).normalized();
+									float vel = velocity;
+									
+									processed_vel_setpoint.twist.linear.x = vel * dirction(0);
+									processed_vel_setpoint.twist.linear.y = vel * dirction(1);
+									processed_vel_setpoint.twist.linear.z = 0.0;
+									processed_vel_setpoint.twist.angular.x = 0.0;
+									processed_vel_setpoint.twist.angular.y = 0.0;
+									processed_vel_setpoint.twist.angular.z = 0.0;
+									offboard_vel_pub.publish(processed_vel_setpoint);
+								}
+
+								break;
+							}
+						}
+								
+					}
+
+					break;
+				}
+				
+				case STATE_LANDING:
+				{
+					break;
+				}
+			}
+
+			// if((local_pos - goal_pos).norm() > NEAR_DISTANCE)
+			// {
+			// 	if(obstacle_distance < OBSTACLE_REGION && obstacle_distance > 0.1)
+			// 	{
+			// 		vec1 = (obstacle_pos - local_pos).normalized();
+			// 		vec2 = (goal_pos - obstacle_pos).normalized();
+			// 		if(vec1.dot(vec2)>0.9)
+			// 		{
+			// 			Vector2f goal_dir = goal_pos - local_pos;
+			// 			Vector2f new_dir(0.0,0.0);
+			// 			rotate_2D(Pi/2, goal_dir, new_dir);
+			// 			if( new_dir.dot(obstacle_pos - local_pos) > 0.0 )
+			// 			{
+			// 				rotate_2D(-Pi/2, goal_dir, new_dir);
+			// 			}
+			// 			Vector2f force =k_att * (goal_pos - local_pos) + k_att_new * new_dir.normalized() + k_rep * (1/obstacle_distance - 1/OBSTACLE_REGION) * obstacle_distance * obstacle_distance * (local_pos - obstacle_pos) * (goal_pos - local_pos).norm() + 1/2 * k_rep * (1/obstacle_distance - 1/OBSTACLE_REGION) * (1/obstacle_distance - 1/OBSTACLE_REGION) * (local_pos - obstacle_pos);
+			// 			fly_direction = force.normalized();
+			// 		}else
+			// 		{
+			// 			Vector2f force = k_att * (goal_pos - local_pos) + k_rep *(1/obstacle_distance - 1/OBSTACLE_REGION) * obstacle_distance * obstacle_distance * (local_pos - obstacle_pos) * (goal_pos - local_pos).norm() + 1/2 * k_rep * (1/obstacle_distance - 1/OBSTACLE_REGION) * (1/obstacle_distance - 1/OBSTACLE_REGION) * (local_pos - obstacle_pos); 
+			// 			fly_direction = force.normalized();
+			// 		}
+					
+			// 	}else
+			// 	{
+			// 		fly_direction = (k_att * (goal_pos - local_pos)).normalized();
+			// 	}
+
+			// 	msg.twist.linear.x = fly_direction(0) * speed;
+			//     msg.twist.linear.y = fly_direction(1) * speed;
+			//     msg.twist.linear.z = 0.0;
+			//     msg.twist.angular.x = 0.0;
+			//     msg.twist.angular.y = 0.0;
+			//     msg.twist.angular.z = 0.0;
+			// }else
+			// {
+			// 	msg.twist.linear.x = 0.0;
+			//     msg.twist.linear.y = 0.0;
+			//     msg.twist.linear.z = 0.0;
+			//     msg.twist.angular.x = 0.0;
+			//     msg.twist.angular.y = 0.0;
+			//     msg.twist.angular.z = 0.0;
+			// }
+		}
+
+		
 		ros::spinOnce();  
 		loop_rate.sleep();  
 	}
 	return 0;  
 }  
-float distance(float x0, float y0, float x1, float y1)
-{
-	return (sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1)));
-}
+
 int float_near(float a, float b, float dif)
 {
 	float t = a-b;
@@ -192,455 +395,97 @@ int float_near(float a, float b, float dif)
 		return 0;
 	}
 }
-void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg)
+void Callback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg)
 {
-//add by CJ
-	if(auto_avoid_processing){
-		
-	}else{
-		if(msg.px > -999.0) //if(offboard_ready)
-		{
-			if(float_near(msg.px, new_setpoint_px, 0.05) && float_near(msg.py, new_setpoint_py, 0.05))// && float_near(msg.ph, new_setpoint_ph, 0.05))
-			{
-				;
-			}
-			else{
-				start_pos[0] = ended_pos[0];
-				start_pos[1] = ended_pos[1];
-				ended_pos[0] = msg.px;
-				ended_pos[1] = msg.py;
-				//start_ph = current_ph;
-				//start_yaw = current_yaw;
-				different_sp_rcv = true;
-			}
-		}
-		else
-		{
-			start_pos[0] = current_px;
-			start_pos[1] = current_py;
-			ended_pos[0] = current_px;
-			ended_pos[1] = current_py; 
-		}
-
-		new_setpoint_px = msg.px;
-		new_setpoint_py = msg.py;
-
-		new_setpoint_ph = msg.ph;
-		new_setpoint_yaw = msg.yaw;
-		
-		next_pos(0) = msg.px;    //add by CJ
-		next_pos(1) = msg.py;    //add by CJ
-		next_pos(2) = 0.0;       //add by CJ
-	}//offboard ready else end
+	new_setpoint_px = msg.px;
+	new_setpoint_py = msg.py;
+	new_setpoint_ph = msg.ph;
+	new_setpoint_yaw = msg.yaw;
 }
 
-void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
+void Callback_local_position(const geometry_msgs::PoseStamped &msg)
 {
 	current_px = msg.pose.position.x;
 	current_py = msg.pose.position.y;
 	current_ph = msg.pose.position.z;
-
-	local_pos(0) = msg.pose.position.x;  //add by CJ
-	local_pos(1) = msg.pose.position.y;  //add by CJ
-	local_pos(2) = 0.0;  //add by CJ
+	local_pos(0) = msg.pose.position.x;  
+	local_pos(1) = msg.pose.position.y;  
+	local_pos(2) = 0.0;  
 
 	float q2=msg.pose.orientation.x;
 	float q1=msg.pose.orientation.y;
 	float q0=msg.pose.orientation.z;
 	float q3=msg.pose.orientation.w;
-	//message.local_position.orientation.pitch = (asin(2*q0*q2-2*q1*q3 ))*57.3;
-	//message.local_position.orientation.roll  = (atan2(2*q2*q3 + 2*q0*q1, 1-2*q1*q1-2*q2*q2))*57.3;
-	current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, West: Pi/2, south:Pi, East:3/2Pi
-//  ROS_INFO("current_yaw %f",current_yaw);
+	current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, south:Pi, East:Pi/2, West: Pi*3/2
+
 }
-void chatterCallback_mode(const mavros::State &msg)
+
+void Callback_mode(const mavros::State &msg)
 {
 	if(msg.mode=="OFFBOARD") 
 	{
 		offboard_ready = true;
-		if(!switch_offboard){
-			switch_offboard = true;
-			obstacle = false;
-
-			obstacle_distance = 20.0;
-			obstacle_angle = 0.0;
-		}
 	}
 	else 
 	{
 		offboard_ready = false;  
-		switch_offboard = false;
 	}
-
-
-	//use as timer, 1Hz
-	timer_counter += 1;
-	if(timer_counter > 5)
-	{
-		timer_counter = 0;
-
-		if(height_lidar_check_flag) 
-		{
-			height_lidar_check_flag = false;
-			height_lidar_running = true;
-		}
-		else
-		{
-			height_lidar_running = false;
-		}
-
-		if(obstacle_lidar_check_flag)
-		{
-			obstacle_lidar_check_flag = false;
-			obstacle_lidar_running = true;
-		}
-		else
-		{
-			obstacle_lidar_running = false;
-		} 
-	}
-
 }
 
+void Callback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
+{
 
-void trajectory_Paras_generation_i(int num, float p0, float pf, float T, Matrix<float, 3, 3>& Paras_matrix)//num 0,1,2 reoresents  x, y, z
-{
-	float v0 = 0, a0 = 0, vf = 0, af = 0;
-	MatrixXd delt_s(3,1);
-	delt_s(0,0) = af-a0;
-	delt_s(1,0) = vf-v0-a0*T;
-	delt_s(2,0) = pf-p0-v0*T-0.5*a0*T*T;
-
-	MatrixXd temp(3,3);
-	temp << 60/pow(T,3),-360/pow(T,4),720/pow(T,5),-24/pow(T,2),168/pow(T,3),-360/pow(T,4),3/T,-24/pow(T,2),60/pow(T,3);
-	//std::cout << temp;
-	MatrixXd const_paras(3,1);//(alfa,beta,gamma)
-	const_paras = temp * delt_s;
-	//std::cout << const_Paras_matrix;
-	Paras_matrix(num,0) = const_paras(0,0);
-	Paras_matrix(num,1) = const_paras(1,0);
-	Paras_matrix(num,2) = const_paras(2,0);
-}
-
-float j_optimal_calculate(int num, float alfa, float beta, float gamma, float t)
-{
-	return 0.5*alfa*t*t+beta*t+gamma;
-}
-
-float p_optimal_calculate(int num, float alfa, float beta, float gamma, float t, float p0)
-{
-	return alfa*pow(t,5)/120+beta*pow(t,4)/24+gamma*pow(t,3)/6+p0;
-}
-float p_simple_calculate(int num, float t, float vel, float p0)
-{
-	return p0 + vel * t;
-}
-float v_optimal_calculate(int num, float alfa, float beta, float gamma, float t)
-{
-	return alfa*pow(t,4)/24+beta*pow(t,3)/6+gamma*t*t/2;
-}
-
-float a_optimal_calculate(int num, float alfa, float beta, float gamma, float t)
-{
-	return alfa*pow(t,3)/6+beta*t*t/2+gamma*t;
-}
-
-int trapezoidalTraj(float start_pos, float ended_pos, 
-	float MAX_v, float MAX_pitch_deg, float MAX_j,
-	VectorXf& nodes_time, 
-	VectorXf& nodes_vel, 
-	VectorXf& nodes_pos, 
-	float* p_max_acc)
-
-{
-	float MAX_a = 9.8*tan(MAX_pitch_deg/57.3f);
-	float max_v, max_a, max_j = MAX_j;
-	VectorXf nodes_t = VectorXf::Zero(8);
-	VectorXf nodes_p = VectorXf::Zero(8);
-	VectorXf nodes_v = VectorXf::Zero(8);
-	VectorXf blocks_t = VectorXf::Zero(7);
-	float duration_amax = MAX_v / MAX_a - MAX_a / MAX_j;
-	float total_length = ended_pos - start_pos;
-	float duration_vmax = (total_length - (1 / MAX_a * MAX_v * MAX_v + MAX_a / MAX_j * MAX_v)) / MAX_v;
-	if(duration_amax<0 && duration_vmax>0){
-		// ROS_INFO("MAX_a unreachable");
-		max_a = sqrt(MAX_j * (MAX_v));
-		max_v = MAX_v;
-		blocks_t(1) = 0;
-		duration_vmax = (total_length - (1 / max_a * max_v * max_v + max_a / MAX_j * max_v)) / max_v;
-		if (duration_vmax<0){
-				duration_vmax = 0;
-			//   ROS_INFO("MAX_v unreachable");
-			// ROS_INFO("Please use Muellers method");
-			return 1;
-		}
-		blocks_t(3) = duration_vmax;
-	}
-	else if(duration_amax>0 && duration_vmax<0){
-		// ROS_INFO("MAX_v unreachable");
-		// ROS_INFO("Please use Muellers method");
-		return 1;
-	}
-	else if(duration_amax<0 && duration_vmax<0){
-		// ROS_INFO("Both MAX_a and MAX_v unreachable");
-		// ROS_INFO("Please use Muellers method");
-		return 1;
-	}
-	else{
-		blocks_t(1) = duration_amax;
-		blocks_t(3) = duration_vmax;
-		max_a = MAX_a;
-		max_v = MAX_v;
-	}
-	blocks_t(0) = max_a / max_j;
-	blocks_t(2) = blocks_t(0);
-	blocks_t(4) = blocks_t(2);
-	blocks_t(5) = blocks_t(1);
-	blocks_t(6) = blocks_t(0);
-	nodes_t(0) = 0;
-	for(int i = 1; i < 8; i++)
-		nodes_t(i) = nodes_t(i - 1) + blocks_t(i - 1);
-	nodes_v(0) = 0;
-	nodes_v(1) = nodes_v(0) + max_j * blocks_t(0) * blocks_t(0) / 2;
-	nodes_v(2) = nodes_v(1) + max_a * blocks_t(1);
-	nodes_v(3) = nodes_v(2) + max_a * blocks_t(2) - max_j * blocks_t(2) * blocks_t(2) / 2;
-	nodes_v(4) = nodes_v(3);
-	nodes_v(5) = nodes_v(4) - max_j * blocks_t(4) * blocks_t(4) / 2;
-	nodes_v(6) = nodes_v(5) - max_a * blocks_t(5);
-	nodes_v(7) = 0;
-	nodes_p(0) = start_pos;
-	nodes_p(1) = nodes_p(0) + nodes_v(0) * blocks_t(0) + max_j * blocks_t(0) * blocks_t(0) * blocks_t(0)/6;
-	nodes_p(2) = nodes_p(1) + nodes_v(1) * blocks_t(1) + max_a * blocks_t(1) * blocks_t(1) / 2;
-	nodes_p(3) = nodes_p(2) + nodes_v(2) * blocks_t(2) + max_a * blocks_t(2) * blocks_t(2) / 2 - max_j * blocks_t(2) * blocks_t(2) * blocks_t(2) / 6;
-	nodes_p(4) = nodes_p(3) + nodes_v(3) * blocks_t(3);
-	nodes_p(5) = nodes_p(4) + nodes_v(4) * blocks_t(4) - max_j * blocks_t(4) * blocks_t(4) * blocks_t(4)/6;
-	nodes_p(6) = nodes_p(5) + nodes_v(5) * blocks_t(5) - max_a * blocks_t(5) * blocks_t(5) / 2;
-	nodes_p(7) = ended_pos;
-	nodes_time = nodes_t;
-	nodes_vel = nodes_v;
-	nodes_pos = nodes_p;
-	*p_max_acc = max_a;
-	return 0;
-}
-float jerkPlan(float max_jerk, int stage)
-{
-	float jerk = 0;
-	switch (stage){
-	case 1:
-		jerk = max_jerk;
-	break;
-	case 2:
-		jerk = 0;
-	break;
-	case 3:
-		jerk = -max_jerk;
-	break;
-	case 4:
-		jerk = 0;
-	break;
-	case 5:
-		jerk = -max_jerk;
-	break;
-	case 6:
-		jerk = 0;
-	break;
-	case 7:
-		jerk = max_jerk;
-	break;
-	default:
-	break;
-	}
-	return jerk;
-}
-float accPlan(float max_jerk, float max_acc, float t, 
-	int stage, const VectorXf& nodes_time)
-{
-	float tau = t - nodes_time(stage - 1);
-	float acc = 0;
-	switch (stage){
-	case 1:
-		acc = max_jerk * tau;
-	break;
-	case 2:
-		acc = max_acc;
-	break;
-	case 3:
-		acc = max_acc - max_jerk * tau;
-	break;
-	case 4:
-		acc = 0;
-	break;
-	case 5:
-		acc = -max_jerk * tau;
-	break;
-	case 6:
-		acc = -max_acc;
-	break;
-	case 7:
-		acc = -max_acc + max_jerk * tau;
-	break;
-	default:
-	break;
-	}
-	return acc;
-}
-float velPlan(float max_jerk, float max_acc, float t, 
-	int stage, const VectorXf& nodes_time, const VectorXf& nodes_vel)
-{
-	float tau = t - nodes_time(stage - 1);
-	float vel = 0;
-	switch (stage){
-	case 1:
-		vel = nodes_vel(0) + max_jerk * tau * tau / 2;
-	break;
-	case 2:
-		vel = nodes_vel(1) + max_acc * tau;
-	break;
-	case 3:
-		vel = nodes_vel(2) + max_acc * tau - max_jerk * tau * tau / 2;
-	break;
-	case 4:
-		vel = nodes_vel(3);
-	break;
-	case 5:
-		vel = nodes_vel(4) - max_jerk * tau * tau / 2;
-	break;
-	case 6:
-		vel = nodes_vel(5) - max_acc * tau;
-	break;
-	case 7:
-		vel = nodes_vel(6) - max_acc * tau + max_jerk * tau * tau / 2;
-	break;
-	default:
-	break;
-	}
-	return vel;
-}
-float posPlan(float max_jerk, float max_acc, float t, 
-	int stage, const VectorXf& nodes_time, 
-	const VectorXf& nodes_vel, const VectorXf& nodes_pos)
-{
-	float tau = t - nodes_time(stage - 1);
-	float pos = nodes_pos(7);
-	switch (stage){
-	case 1:
-		pos = nodes_pos(0) + nodes_vel(0) * tau + max_jerk * tau * tau * tau / 6;
-	break;
-	case 2:
-		pos = nodes_pos(1) + nodes_vel(1) * tau + max_acc * tau * tau / 2;
-	break;
-	case 3:
-		pos = nodes_pos(2) + nodes_vel(2) * tau + max_acc * tau * tau / 2 - max_jerk * tau * tau * tau / 6;
-	break;
-	case 4:
-		pos = nodes_pos(3) + nodes_vel(3) * tau;
-	break;
-	case 5:
-		pos = nodes_pos(4) + nodes_vel(4) * tau - max_jerk * tau * tau * tau / 6;
-	break;
-	case 6:
-		pos = nodes_pos(5) + nodes_vel(5) * tau - max_acc * tau * tau / 2;
-	break;
-	case 7:
-		pos = nodes_pos(6) + nodes_vel(6) * tau - max_acc * tau * tau / 2 + max_jerk * tau * tau * tau / 6;
-	break;
-	default:
-	break;
-	}
-	return pos;
-}
-
-void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
-{
-	if(msg.obs_avoid_enable != 0)  obstacle_avoid_enable = true;
-	else obstacle_avoid_enable = false;
-
-	if(msg.obs_avoid_enable == 1)  obstacle_avoid_auto_enable = false; 
-	if(msg.obs_avoid_enable ==2)  obstacle_avoid_auto_enable = true;
-
-	if(msg.laser_height_enable == 1) laser_fly_height_enable = true;
-	else laser_fly_height_enable = false;
-
-    	if(msg.add_two > 0 && msg.add_two < 10 && !ploylines_flying){ MAX_v = msg.add_two;} //ROS_INFO("max speed = %f", MAX_v);}
 }
 
 //Subscribe obstacle msg by CJ
-void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
+void Callback_obstacle(const mavros_extras::LaserDistance &msg)
 {
 	Vector3f direction;
 
-	laser_distance = msg.min_distance;
-	laser_angle = msg.angle;
+	obstacle_distance = msg.min_distance / 100.0;
+	obstacle_angle = msg.angle;
 
 	direction = next_pos - local_pos;
-	obstacle_pos_body(0) = laser_distance * cosf(laser_angle);
-	obstacle_pos_body(1) = laser_distance * sinf(laser_angle);
+	obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
+	obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
 	obstacle_pos_body(2) = 0.0;
-	rotate(current_yaw, obstacle_pos_body, obstacle_pos_r_local);
-	obstacle_pos_local = local_pos + obstacle_pos_r_local;
-	if(direction.dot(obstacle_pos_r_local) > 0) fly_direction_enable = true;
-	else fly_direction_enable = false;
-
-	if(laser_distance > 0.9 && laser_distance < 5.0)
-	{
-		obstacle = true;
-
-		if(obstacle_avoid_enable && obstacle_avoid_height_enable && obstacle_avoid_auto_enable && !auto_avoid_processing && fly_direction_enable && obstacle_lidar_running)  
-		{
-			auto_avoid_processing = true;
-		}
-
-		if(obstacle_avoid_enable && obstacle_avoid_height_enable && !obstacle_avoid_auto_enable && fly_direction_enable && obstacle_lidar_running)
-		{
-			manual_avoid = true;
-		}
-		else{
-			manual_avoid = false;
-		} 
-	}else
-	{
-		manual_avoid = false;
-	}
-
-	obstacle_lidar_check_flag = true;
+	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
 }
 
-//Subscribe crop distance msg by CJ
-void chatterCallback_crop_distance(const lidar_driver::Lidar &msg)
+void Callback_lidar(const lidar_driver::Lidar &msg)
 {
-	if(msg.distance.data >= 1.0)
-	{
-		obstacle_avoid_height_enable = true;
-	}else
-	{
-		obstacle_avoid_height_enable = false;
-	}
-	laser_height = msg.distance.data;
-	height_confidence1 = 1.0;
-	height_confidence2 = 1.0;
 
-	lidar_counter += 1;
-	if(lidar_counter > 20)
-	{
-		if(fabs(laser_height_last - laser_height)<0.00001) height_lidar_running = false;
-		else height_lidar_running = true;
-
-		if(fabs(laser_height-6.0)<0.01)  height_lidar_running = true;
-
-		laser_height_last = laser_height;
-		lidar_counter = 0;
-	}
-	height_lidar_check_flag = true;
 }
 
-//Subscribe fly direction by CJ
-void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg)
+bool isArrived(Vector3f& local, Vector3f& goal)
 {
-	fly_direction = msg.direction;
+	if((local - goal).norm() < NEAR_DISTANCE)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
+
 
 //rotate function
-void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
+void rotate_2D(float yaw,  const Vector2f& input,  Vector2f& output)
+{
+	float sy = sinf(yaw);
+	float cy = cosf(yaw);
+
+	Matrix2f data;
+	data(0,0) = cy;
+	data(0,1) = -sy;
+	data(1,0) = sy;
+	data(1,1) = cy;
+
+	output = data * input;
+}
+
+void rotate_3D(float yaw,  const Vector3f& input,  Vector3f& output)
 {
 	float sy = sinf(yaw);
 	float cy = cosf(yaw);
@@ -659,7 +504,3 @@ void rotate(float yaw,  const Vector3f& input,  Vector3f& output)
 	output = data * input;
 }
 
-void obstacle_avoid_trajectory_generation(const Vector3f& current_position, const Vector3f& next_position, Matrix<float, 4, 2> trajectory_matrix)
-{
-	
-}
