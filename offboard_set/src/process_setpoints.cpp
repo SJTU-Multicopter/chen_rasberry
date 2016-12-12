@@ -2,6 +2,7 @@
 #include <math.h>
 #include "mavros_extras/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/TwistStamped.h" 
 #include "mavros/State.h"
 #include "mavros_extras/ExtraFunctionReceiver.h"
 #include "mavros_extras/LaserDistance.h"
@@ -168,7 +169,7 @@ int main(int argc, char **argv)
 		cmd.twist.angular.y = 0;
 		cmd.twist.angular.z = 0;
 		offboard_vel_pub.publish(cmd);
-		
+
 		ros::spinOnce();  
 		loop_rate.sleep();  
 	}
