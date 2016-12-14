@@ -6,6 +6,7 @@
 #include "mavros/State.h"
 #include "mavros_extras/ExtraFunctionReceiver.h"
 #include "mavros_extras/LaserDistance.h"
+#include "lidar_driver/Lidar.h"
 #include "Eigen/Dense"
 #include "std_msgs/String.h"  
 #include "std_msgs/Float32.h"
@@ -38,11 +39,11 @@ void rotate_2D(float yaw, const Vector2f& input, Vector2f& output);
 void rotate_3D(float yaw,  const Vector3f& input,  Vector3f& output);
 bool isArrived(Vector3f& local, Vector3f& goal);
 
-Vector3f local_pos(0.0,0.0);
-Vector3f goal_pos(0.0,0.0); 
-Vector3f obstacle_pos(0.0,0.0); 
-Vector3f obstacle_pos_body(0.0,0.0);
-Vector3f obstacle_pos_local(0.0,0.0);
+Vector3f local_pos(0.0,0.0,0.0);
+Vector3f goal_pos(0.0,0.0,0.0); 
+Vector3f obstacle_pos(0.0,0.0,0.0); 
+Vector3f obstacle_pos_body(0.0,0.0,0.0);
+Vector3f obstacle_pos_local(0.0,0.0,0.0);
 
 float obstacle_distance = 0.0;  
 float obstacle_angle = 0.0; 
@@ -70,7 +71,7 @@ float k_rep = 1.0;
 float k_att_new = 24.0;
 float speed = 1.0;
 
-const float velocity = 0.5;
+const float velocity = 1.0;
 
 geometry_msgs::TwistStamped processed_vel_setpoint;
 mavros_extras::PositionSetpoint processed_pos_setpoint;
@@ -133,23 +134,23 @@ int main(int argc, char **argv)
 				start_bool = false;
 			}
 
-			if(standard_height.data < 1.0)
-			{
+		//	if(standard_height.data < 1.0)
+		//	{
 				processed_pos_setpoint.px = current_px;
 				processed_pos_setpoint.py = current_py;
 				processed_pos_setpoint.yaw = start_yaw;
-			}else
-			{
-				if(!set_start_pos)
-				{
-					start_px = current_px;
-					start_py = current_py;
-					set_start_pos = true
-				}
-				processed_pos_setpoint.px = start_px;
-				processed_pos_setpoint.py = start_py;
-				processed_pos_setpoint.yaw = start_yaw;
-			}
+		//	}else
+		//	{
+		//		if(!set_start_pos)
+		//		{
+		//			start_px = current_px;
+		//			start_py = current_py;
+		//			set_start_pos = true;
+		//		}
+		//		processed_pos_setpoint.px = start_px;
+		//		processed_pos_setpoint.py = start_py;
+		//		processed_pos_setpoint.yaw = start_yaw;
+		//	}
 				
 			//take off height set
 			if(new_setpoint_ph - standard_height.data > 0.3) processed_pos_setpoint.ph = current_ph + 0.8;
@@ -177,10 +178,10 @@ int main(int argc, char **argv)
 		else if(new_setpoint_ph < -1994)
 		//??????
 		{
-			processed_setpoint.px = new_setpoint_px;
-			processed_setpoint.py = new_setpoint_py;
-			processed_setpoint.ph = new_setpoint_ph;
-			processed_setpoint.yaw = new_setpoint_yaw;
+			processed_pos_setpoint.px = new_setpoint_px;
+			processed_pos_setpoint.py = new_setpoint_py;
+			processed_pos_setpoint.ph = new_setpoint_ph;
+			processed_pos_setpoint.yaw = new_setpoint_yaw;
 			start_bool = true;
 
 			//publish position setpoint
@@ -220,7 +221,7 @@ int main(int argc, char **argv)
 						processed_pos_setpoint.yaw = current_yaw;
 						offboard_pos_pub.publish(processed_pos_setpoint);
 						ros::spinOnce();
-						rate.sleep();
+						loop_rate.sleep();
 					}
 
 					//update goal_pos
@@ -262,6 +263,8 @@ int main(int argc, char **argv)
 									{
 										Vector3f dirction = (goal_pos - local_pos).normalized();
 										float vel = (float)i/10 * velocity;
+
+										ROS_INFO("VEL:%f",vel);
 										
 										processed_vel_setpoint.twist.linear.x = vel * dirction(0);
 										processed_vel_setpoint.twist.linear.y = vel * dirction(1);
@@ -271,7 +274,7 @@ int main(int argc, char **argv)
 										processed_vel_setpoint.twist.angular.z = 0.0;
 										offboard_vel_pub.publish(processed_vel_setpoint);
 										ros::spinOnce();
-										rate.sleep();
+										loop_rate.sleep();
 									}
 		
 								}
@@ -293,7 +296,7 @@ int main(int argc, char **argv)
 								processed_vel_setpoint.twist.angular.z = 0.0;
 								offboard_vel_pub.publish(processed_vel_setpoint);
 								ros::spinOnce();
-								rate.sleep();
+								loop_rate.sleep();
 
 								break;
 							}
@@ -464,6 +467,12 @@ void Callback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
 void Callback_obstacle(const mavros_extras::LaserDistance &msg)
 {
 	Vector3f direction;
+	Vector3f next_pos;
+
+	next_pos(0) = new_setpoint_px;
+	next_pos(1) = new_setpoint_py;
+	next_pos(2) = 0.0;
+
 
 	obstacle_distance = msg.min_distance / 100.0;
 	obstacle_angle = msg.angle;
@@ -472,7 +481,7 @@ void Callback_obstacle(const mavros_extras::LaserDistance &msg)
 	obstacle_pos_body(0) = obstacle_distance / 100.0 * cosf(obstacle_angle / 180.0 * Pi);
 	obstacle_pos_body(1) = -obstacle_distance / 100.0 * sinf(obstacle_angle / 180.0 * Pi);
 	obstacle_pos_body(2) = 0.0;
-	rotate(current_yaw, obstacle_pos_body, obstacle_pos_local);
+	rotate_3D(current_yaw, obstacle_pos_body, obstacle_pos_local);
 
 	obstacle_lidar_check_flag = true;
 }
