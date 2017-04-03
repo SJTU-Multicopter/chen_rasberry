@@ -4,7 +4,7 @@
  * @author Vladimir Ermakov <vooon341@gmail.com>
  */
 /*
- * Copyright 2014 Vladimir Ermakov.
+ * Copyright 2014,2016 Vladimir Ermakov.
  *
  * This file is part of the mavros package and subject to the license terms
  * in the top-level LICENSE file of the mavros repository.
@@ -18,8 +18,6 @@
 #include <mavros/mavlink_diag.h>
 #include <mavconn/interface.h>
 
-#include <mavros/Mavlink.h>
-
 using namespace mavros;
 using namespace mavconn;
 
@@ -28,28 +26,30 @@ ros::Subscriber mavlink_sub;
 MAVConnInterface::Ptr gcs_link;
 
 
-void mavlink_pub_cb(const mavlink_message_t *mmsg, uint8_t sysid, uint8_t compid) {
-	MavlinkPtr rmsg = boost::make_shared<Mavlink>();
+void mavlink_pub_cb(const mavlink::mavlink_message_t *mmsg, const mavconn::Framing framing)
+{
+	auto rmsg = boost::make_shared<mavros_msgs::Mavlink>();
 
 	rmsg->header.stamp = ros::Time::now();
-	mavutils::copy_mavlink_to_ros(mmsg, rmsg);
+	mavros_msgs::mavlink::convert(*mmsg, *rmsg, mavros::utils::enum_value(framing));
 	mavlink_pub.publish(rmsg);
-};
+}
 
-void mavlink_sub_cb(const Mavlink::ConstPtr &rmsg) {
-	mavlink_message_t mmsg;
+void mavlink_sub_cb(const mavros_msgs::Mavlink::ConstPtr &rmsg)
+{
+	mavlink::mavlink_message_t mmsg;
 
-	if (mavutils::copy_ros_to_mavlink(rmsg, mmsg))
-		gcs_link->send_message(&mmsg, rmsg->sysid, rmsg->compid);
+	if (mavros_msgs::mavlink::convert(*rmsg, mmsg))
+		gcs_link->send_message(&mmsg);	// !!! queue exception -> fall of gcs_bridge. intentional.
 	else
-		ROS_ERROR("Packet drop: illegal payload64 size");
-};
+		ROS_ERROR("Packet drop: convert error.");
+}
 
 int main(int argc, char *argv[])
 {
 	ros::init(argc, argv, "gcs_bridge");
 	ros::NodeHandle priv_nh("~");
-	ros::NodeHandle mavlink_nh("/mavlink");
+	ros::NodeHandle mavlink_nh("mavlink");
 	diagnostic_updater::Updater updater;
 	mavros::MavlinkDiag gcs_link_diag("GCS bridge");
 
@@ -66,20 +66,21 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	mavlink_pub = mavlink_nh.advertise<Mavlink>("to", 10);
-	gcs_link->message_received.connect(mavlink_pub_cb);
+	mavlink_pub = mavlink_nh.advertise<mavros_msgs::Mavlink>("to", 10);
+	gcs_link->message_received_cb = mavlink_pub_cb;
 
+	// prefer UDPROS, but allow TCPROS too
 	mavlink_sub = mavlink_nh.subscribe("from", 10, mavlink_sub_cb,
 		ros::TransportHints()
-			.unreliable()
-			.maxDatagramSize(1024));
+			.unreliable().maxDatagramSize(1024)
+			.reliable());
 
 	// setup updater
 	updater.setHardwareID(gcs_url);
 	updater.add(gcs_link_diag);
 
 	// updater spinner
-	auto diag_timer = priv_nh.createTimer(ros::Duration(1.0),
+	auto diag_timer = priv_nh.createTimer(ros::Duration(0.5),
 			[&](const ros::TimerEvent &evt) {
 				updater.update();
 			});
@@ -88,4 +89,3 @@ int main(int argc, char *argv[])
 	ros::spin();
 	return 0;
 }
-

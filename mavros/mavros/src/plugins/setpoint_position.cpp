@@ -7,7 +7,7 @@
  * @{
  */
 /*
- * Copyright 2014 Vladimir Ermakov.
+ * Copyright 2014,2016 Vladimir Ermakov.
  *
  * This file is part of the mavros package and subject to the license terms
  * in the top-level LICENSE file of the mavros repository.
@@ -16,50 +16,50 @@
 
 #include <mavros/mavros_plugin.h>
 #include <mavros/setpoint_mixin.h>
-#include <pluginlib/class_list_macros.h>
 #include <eigen_conversions/eigen_msg.h>
 
 #include <geometry_msgs/PoseStamped.h>
-#include <sstream>  
-namespace mavplugin {
+
+namespace mavros {
+namespace std_plugins {
 /**
  * @brief Setpoint position plugin
  *
  * Send setpoint positions to FCU controller.
  */
-class SetpointPositionPlugin : public MavRosPlugin,
-	private SetPositionTargetLocalNEDMixin<SetpointPositionPlugin>,
-	private TF2ListenerMixin<SetpointPositionPlugin> {
+class SetpointPositionPlugin : public plugin::PluginBase,
+	private plugin::SetPositionTargetLocalNEDMixin<SetpointPositionPlugin>,
+	private plugin::TF2ListenerMixin<SetpointPositionPlugin> {
 public:
-	SetpointPositionPlugin() :
+	SetpointPositionPlugin() : PluginBase(),
 		sp_nh("~setpoint_position"),
-		uas(nullptr),
 		tf_rate(10.0)
-	{ };
+	{ }
 
 	void initialize(UAS &uas_)
 	{
-		bool tf_listen;
+		PluginBase::initialize(uas_);
 
-		uas = &uas_;
+		bool tf_listen;
 
 		// tf params
 		sp_nh.param("tf/listen", tf_listen, false);
-		sp_nh.param<std::string>("tf/frame_id", tf_frame_id, "local_origin");
-		sp_nh.param<std::string>("tf/child_frame_id", tf_child_frame_id, "setpoint");
+		sp_nh.param<std::string>("tf/frame_id", tf_frame_id, "map");
+		sp_nh.param<std::string>("tf/child_frame_id", tf_child_frame_id, "aircraft");
 		sp_nh.param("tf/rate_limit", tf_rate, 50.0);
 
 		if (tf_listen) {
-			ROS_INFO_STREAM_NAMED("setpoint", "Listen to position setpoint transform " << tf_frame_id
-					<< " -> " << tf_child_frame_id);
+			ROS_INFO_STREAM_NAMED("setpoint", "Listen to position setpoint transform "
+					<< tf_frame_id << " -> " << tf_child_frame_id);
 			tf2_start("PositionSpTF", &SetpointPositionPlugin::transform_cb);
 		}
 		else {
-			setpoint_sub = sp_nh.subscribe("/offboard/setpoints", 10, &SetpointPositionPlugin::setpoint_cb, this);
+			setpoint_sub = sp_nh.subscribe("local", 10, &SetpointPositionPlugin::setpoint_cb, this);
 		}
 	}
 
-	const message_map get_rx_handlers() {
+	Subscriptions get_subscriptions()
+	{
 		return { /* Rx disabled */ };
 	}
 
@@ -67,7 +67,6 @@ private:
 	friend class SetPositionTargetLocalNEDMixin;
 	friend class TF2ListenerMixin;
 	ros::NodeHandle sp_nh;
-	UAS *uas;
 
 	ros::Subscriber setpoint_sub;
 
@@ -83,6 +82,8 @@ private:
 	 * @warning Send only XYZ, Yaw. ENU frame.
 	 */
 	void send_position_target(const ros::Time &stamp, const Eigen::Affine3d &tr) {
+		using mavlink::common::MAV_FRAME;
+
 		/* Documentation start from bit 1 instead 0;
 		 * Ignore velocity and accel vectors, yaw rate.
 		 *
@@ -91,17 +92,17 @@ private:
 		 */
 		const uint16_t ignore_all_except_xyz_y = (1 << 11) | (7 << 6) | (7 << 3);
 
-		auto p = UAS::transform_frame_enu_ned(Eigen::Vector3d(tr.translation()));
-		auto q = UAS::transform_frame_enu_ned(Eigen::Quaterniond(tr.rotation()));
+		auto p = ftf::transform_frame_enu_ned(Eigen::Vector3d(tr.translation()));
+		auto q = ftf::transform_orientation_enu_ned(
+					ftf::transform_orientation_baselink_aircraft(Eigen::Quaterniond(tr.rotation())));
 
 		set_position_target_local_ned(stamp.toNSec() / 1000000,
-				MAV_FRAME_LOCAL_NED,
-				ignore_all_except_xyz_y,
-				p.x(), p.y(), p.z(),
-				0.0, 0.0, 0.0,
-				0.0, 0.0, 0.0,
-				UAS::quaternion_get_yaw(q), 0.0);
-				//0.0, 0.0);
+					utils::enum_value(MAV_FRAME::LOCAL_NED),
+					ignore_all_except_xyz_y,
+					p,
+					Eigen::Vector3d::Zero(),
+					Eigen::Vector3d::Zero(),
+					ftf::quaternion_get_yaw(q), 0.0);
 	}
 
 	/* -*- callbacks -*- */
@@ -117,14 +118,14 @@ private:
 	}
 
 	void setpoint_cb(const geometry_msgs::PoseStamped::ConstPtr &req) {
-        //ROS_INFO("666");
 		Eigen::Affine3d tr;
 		tf::poseMsgToEigen(req->pose, tr);
 
 		send_position_target(req->header.stamp, tr);
-
 	}
 };
-};	// namespace mavplugin
+}	// namespace std_plugins
+}	// namespace mavros
 
-PLUGINLIB_EXPORT_CLASS(mavplugin::SetpointPositionPlugin, mavplugin::MavRosPlugin)
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(mavros::std_plugins::SetpointPositionPlugin, mavros::plugin::PluginBase)

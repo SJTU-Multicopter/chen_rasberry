@@ -7,8 +7,6 @@ project(mavros)
 find_package(catkin REQUIRED COMPONENTS
   diagnostic_msgs
   diagnostic_updater
-  message_generation
-  message_runtime
   pluginlib
   roscpp
   geometry_msgs
@@ -21,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   libmavconn
   rosconsole_bridge
   eigen_conversions
+  mavros_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -39,103 +38,19 @@ endif()
 include(EnableCXX11)
 include(MavrosMavlink)
 
+# detect if sensor_msgs has BatteryState.msg
+# http://answers.ros.org/question/223769/how-to-check-that-message-exists-with-catkin-for-conditional-compilation-sensor_msgsbatterystate/
+list(FIND sensor_msgs_MESSAGE_FILES "msg/BatteryState.msg" BATTERY_STATE_MSG_IDX)
+if(${BATTERY_STATE_MSG_IDX} GREATER -1)
+  add_definitions(
+    -DHAVE_SENSOR_MSGS_BATTERYSTATE_MSG
+  )
+endif()
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 catkin_python_setup()
-
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## To declare and build messages, services or actions from within this
-## package, follow these steps:
-## * Let MSG_DEP_SET be the set of packages whose message types you use in
-##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
-## * In the file package.xml:
-##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
-##   * If MSG_DEP_SET isn't empty the following dependencies might have been
-##     pulled in transitively but can be declared for certainty nonetheless:
-##     * add a build_depend tag for "message_generation"
-##     * add a run_depend tag for "message_runtime"
-## * In this file (CMakeLists.txt):
-##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * add "message_runtime" and every package in MSG_DEP_SET to
-##     catkin_package(CATKIN_DEPENDS ...)
-##   * uncomment the add_*_files sections below as needed
-##     and list every .msg/.srv/.action file to be processed
-##   * uncomment the generate_messages entry below
-##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
-
-## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Mavlink.msg
-  Waypoint.msg
-  WaypointList.msg
-  BatteryStatus.msg
-  State.msg
-  RCIn.msg
-  RCOut.msg
-  RadioStatus.msg
-  OverrideRCIn.msg
-  VFR_HUD.msg
-  FileEntry.msg
-  ActuatorControl.msg
-  CommandCode.msg
-  ParamValue.msg
-  SetPointLocal.msg
-  Vector3.msg
-)
-
-## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  ParamSet.srv
-  ParamGet.srv
-  ParamPull.srv
-  ParamPush.srv
-  WaypointSetCurrent.srv
-  WaypointClear.srv
-  WaypointPull.srv
-  WaypointPush.srv
-  WaypointGOTO.srv
-  CommandLong.srv
-  CommandInt.srv
-  CommandBool.srv
-  CommandHome.srv
-  CommandTOL.srv
-  CommandTriggerControl.srv
-  StreamRate.srv
-  SetMode.srv
-  FileOpen.srv
-  FileClose.srv
-  FileRead.srv
-  FileWrite.srv
-  FileList.srv
-  FileRemove.srv
-  FileMakeDir.srv
-  FileRemoveDir.srv
-  FileTruncate.srv
-  FileRename.srv
-  FileChecksum.srv
-)
-
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
-
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  diagnostic_msgs
-  sensor_msgs
-  std_msgs
-)
 
 
 ###################################
@@ -150,18 +65,14 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES mavros
-  CATKIN_DEPENDS diagnostic_msgs diagnostic_updater pluginlib roscpp sensor_msgs nav_msgs std_msgs tf2_ros geometry_msgs libmavconn message_runtime eigen_conversions
-  DEPENDS Boost Eigen
+  CATKIN_DEPENDS diagnostic_msgs diagnostic_updater pluginlib roscpp sensor_msgs nav_msgs std_msgs tf2_ros geometry_msgs libmavconn message_runtime eigen_conversions mavros_msgs
+  DEPENDS Boost EIGEN3
 )
 
 ###########
 ## Build ##
 ###########
 
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-# include_directories(include)
-# TODO: Check names of system library include directories (boost)
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
@@ -174,20 +85,19 @@ add_library(mavros
   src/lib/uas_data.cpp
   src/lib/uas_stringify.cpp
   src/lib/uas_timesync.cpp
-  src/lib/uas_sensor_orientation.cpp
-  src/lib/uas_frame_conversions.cpp
-  src/lib/uas_quaternion_utils.cpp
+  src/lib/enum_to_string.cpp
+  src/lib/enum_sensor_orientation.cpp
+  src/lib/ftf_frame_conversions.cpp
+  src/lib/ftf_quaternion_utils.cpp
   src/lib/mavros.cpp
   src/lib/mavlink_diag.cpp
   src/lib/rosconsole_bridge.cpp
-)
-add_dependencies(mavros
-  mavros_generate_messages_cpp
 )
 target_link_libraries(mavros
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
 )
+add_dependencies(mavros mavros_msgs_generate_messages_cpp)
 
 add_library(mavros_plugins
   src/plugins/dummy.cpp
@@ -206,9 +116,14 @@ add_library(mavros_plugins
   src/plugins/setpoint_velocity.cpp
   src/plugins/setpoint_accel.cpp
   src/plugins/setpoint_attitude.cpp
+  src/plugins/setpoint_raw.cpp
   src/plugins/vfr_hud.cpp
   src/plugins/ftp.cpp
   src/plugins/actuator_control.cpp
+  src/plugins/manual_control.cpp
+  src/plugins/altitude.cpp
+  src/plugins/hil_controls.cpp
+  src/plugins/hil_actuator_controls.cpp
 )
 add_dependencies(mavros_plugins
   mavros
@@ -234,9 +149,6 @@ target_link_libraries(mavros_node
 
 add_executable(gcs_bridge
   src/gcs_bridge.cpp
-)
-add_dependencies(gcs_bridge
-  mavros_generate_messages_cpp
 )
 target_link_libraries(gcs_bridge
   mavros

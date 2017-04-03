@@ -2,12 +2,13 @@
  * @brief MAVROS Plugin context
  * @file mavros_uas.h
  * @author Vladimir Ermakov <vooon341@gmail.com>
+ * @author Eddy Scott <scott.edward@aurora.aero>
  *
  * @addtogroup nodelib
  * @{
  */
 /*
- * Copyright 2014,2015 Vladimir Ermakov.
+ * Copyright 2014,2015,2016,2017 Vladimir Ermakov.
  *
  * This file is part of the mavros package and subject to the license terms
  * in the top-level LICENSE file of the mavros repository.
@@ -19,12 +20,12 @@
 #include <array>
 #include <mutex>
 #include <atomic>
-#include <Eigen/Eigen>
-#include <Eigen/Geometry>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <mavconn/interface.h>
+#include <mavros/utils.h>
+#include <mavros/frame_tf.h>
 
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
@@ -42,24 +43,6 @@ namespace mavros {
 #define UAS_DIAG(uasobjptr)				\
 	((uasobjptr)->diag_updater)
 
-/**
- * @brief helper for mavlink_msg_*_pack_chan()
- *
- * Filler for first arguments of *_pack_chan functions.
- */
-#define UAS_PACK_CHAN(uasobjptr)			\
-	UAS_FCU(uasobjptr)->get_system_id(),		\
-	UAS_FCU(uasobjptr)->get_component_id(),		\
-	UAS_FCU(uasobjptr)->get_channel()
-
-/**
- * @brief helper for pack messages with target fields
- *
- * Filler for target_system, target_component fields.
- */
-#define UAS_PACK_TGT(uasobjptr)				\
-	(uasobjptr)->get_tgt_system(),			\
-	(uasobjptr)->get_tgt_component()
 
 /**
  * @brief UAS for plugins
@@ -78,28 +61,19 @@ namespace mavros {
  */
 class UAS {
 public:
-	typedef std::lock_guard<std::recursive_mutex> lock_guard;
-	typedef std::unique_lock<std::recursive_mutex> unique_lock;
+	using ConnectionCb = std::function<void(bool)>;
+	using lock_guard = std::lock_guard<std::recursive_mutex>;
+	using unique_lock = std::unique_lock<std::recursive_mutex>;
 
-	//! Type matching rosmsg for covariance 3x3
-	typedef boost::array<double, 9> Covariance3d;
-	//! Type matching rosmsg for covarince 6x6
-	typedef boost::array<double, 36> Covariance6d;
-
-	//! Eigen::Map for Covariance3d
-	typedef Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor> > EigenMapCovariance3d;
-	typedef Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor> > EigenMapConstCovariance3d;
-	//! Eigen::Map for Covariance6d
-	typedef Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor> > EigenMapCovariance6d;
-	typedef Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor> > EigenMapConstCovariance6d;
+	// common enums used by UAS
+	using MAV_TYPE = mavlink::common::MAV_TYPE;
+	using MAV_AUTOPILOT = mavlink::common::MAV_AUTOPILOT;
+	using MAV_MODE_FLAG = mavlink::common::MAV_MODE_FLAG;
+	using MAV_STATE = mavlink::common::MAV_STATE;
+	using timesync_mode = utils::timesync_mode;
 
 	UAS();
 	~UAS() {};
-
-	/**
-	 * Stop UAS
-	 */
-	void stop(void);
 
 	/**
 	 * @brief MAVLink FCU device conection
@@ -110,13 +84,6 @@ public:
 	 * @brief Mavros diagnostic updater
 	 */
 	diagnostic_updater::Updater diag_updater;
-
-	/**
-	 * @brief This signal emit when status was changed
-	 *
-	 * @param bool connection status
-	 */
-	boost::signals2::signal<void(bool)> sig_connection_changed;
 
 	/**
 	 * @brief Return connection status
@@ -130,7 +97,7 @@ public:
 	/**
 	 * Update autopilot type on every HEARTBEAT
 	 */
-	void update_heartbeat(uint8_t type_, uint8_t autopilot_);
+	void update_heartbeat(uint8_t type_, uint8_t autopilot_, uint8_t base_mode_);
 
 	/**
 	 * Update autopilot connection status (every HEARTBEAT/conn_timeout)
@@ -138,19 +105,42 @@ public:
 	void update_connection_status(bool conn_);
 
 	/**
+	 * @brief Add connection change handler callback
+	 */
+	void add_connection_change_handler(ConnectionCb cb);
+
+	/**
 	 * @brief Returns vehicle type
 	 */
-	inline enum MAV_TYPE get_type() {
-		uint8_t type_ = type;
-		return static_cast<enum MAV_TYPE>(type_);
+	inline MAV_TYPE get_type() {
+		std::underlying_type<MAV_TYPE>::type type_ = type;
+		return static_cast<MAV_TYPE>(type_);
 	}
 
 	/**
 	 * @brief Returns autopilot type
 	 */
-	inline enum MAV_AUTOPILOT get_autopilot() {
-		uint8_t autopilot_ = autopilot;
-		return static_cast<enum MAV_AUTOPILOT>(autopilot_);
+	inline MAV_AUTOPILOT get_autopilot() {
+		std::underlying_type<MAV_AUTOPILOT>::type autopilot_ = autopilot;
+		return static_cast<MAV_AUTOPILOT>(autopilot_);
+	}
+
+	/**
+	 * @brief Returns arming status
+	 *
+	 * @note There may be race condition between SET_MODE and HEARTBEAT.
+	 */
+	inline bool get_armed() {
+		uint8_t base_mode_ = base_mode;
+		return base_mode_ & utils::enum_value(MAV_MODE_FLAG::SAFETY_ARMED);
+	}
+
+	/**
+	 * @brief Returns HIL status
+	 */
+	inline bool get_hil_state() {
+		uint8_t base_mode_ = base_mode;
+		return base_mode_ & utils::enum_value(MAV_MODE_FLAG::HIL_ENABLED);
 	}
 
 	/* -*- FCU target id pair -*- */
@@ -189,6 +179,12 @@ public:
 	 */
 	geometry_msgs::Quaternion get_attitude_orientation();
 
+	/**
+	 * @brief Get angular velocity from IMU data
+	 * @return vector3
+	 */
+	geometry_msgs::Vector3 get_attitude_angular_velocity();
+
 
 	/* -*- GPS data -*- */
 
@@ -218,6 +214,14 @@ public:
 
 	inline uint64_t get_time_offset(void) {
 		return time_offset;
+	}
+
+	inline void set_timesync_mode(timesync_mode mode) {
+		tsync_mode = mode;
+	}
+
+	inline timesync_mode get_timesync_mode(void) {
+		return tsync_mode;
 	}
 
 	/* -*- autopilot version -*- */
@@ -254,6 +258,15 @@ public:
 	/* -*- utils -*- */
 
 	/**
+	 * Helper template to set target id's of message.
+	 */
+	template<typename _T>
+	inline void msg_set_target(_T &msg) {
+		msg.target_system = get_tgt_system();
+		msg.target_component = get_tgt_component();
+	}
+
+	/**
 	 * @brief Check that sys/comp id's is my target
 	 */
 	inline bool is_my_target(uint8_t sysid, uint8_t compid) {
@@ -271,14 +284,14 @@ public:
 	 * @brief Check that FCU is APM
 	 */
 	inline bool is_ardupilotmega() {
-		return MAV_AUTOPILOT_ARDUPILOTMEGA == get_autopilot();
+		return MAV_AUTOPILOT::ARDUPILOTMEGA == get_autopilot();
 	}
 
 	/**
 	 * @brief Check that FCU is PX4
 	 */
 	inline bool is_px4() {
-		return MAV_AUTOPILOT_PX4 == get_autopilot();
+		return MAV_AUTOPILOT::PX4 == get_autopilot();
 	}
 
 	/**
@@ -307,140 +320,18 @@ public:
 	 */
 	bool cmode_from_str(std::string cmode_str, uint32_t &custom_mode);
 
-	/**
-	 * @brief Represent MAV_AUTOPILOT as string
-	 */
-	static std::string str_autopilot(enum MAV_AUTOPILOT ap);
-
-	/**
-	 * @brief Represent MAV_TYPE as string
-	 */
-	static std::string str_type(enum MAV_TYPE type);
-
-	/**
-	 * @brief Represent MAV_STATE as string
-	 */
-	static std::string str_system_status(enum MAV_STATE st);
-
-	/**
-	 * @brief Function to match the received orientation received by MAVLink msg
-	 *        and the rotation of the sensor relative to the FCU.
-	 */
-	static Eigen::Quaterniond sensor_orientation_matching(MAV_SENSOR_ORIENTATION orientation);
-
-	/**
-	 * @brief Retrieve alias of the orientation received by MAVLink msg.
-	 */
-	static std::string str_sensor_orientation(MAV_SENSOR_ORIENTATION orientation);
-
-	/**
-	 * @brief Retrieve sensor orientation number from alias name.
-	 */
-	static int orientation_from_str(const std::string &sensor_orientation);
-
-	/* -*- frame conversion utilities -*- */
-
-	/**
-	 * @brief Convert euler angles to quaternion.
-	 */
-	static Eigen::Quaterniond quaternion_from_rpy(const Eigen::Vector3d &rpy);
-
-	/**
-	 * @brief Convert euler angles to quaternion.
-	 *
-	 * @return quaternion, same as @a tf::quaternionFromRPY() but in Eigen format.
-	 */
-	static inline Eigen::Quaterniond quaternion_from_rpy(const double roll, const double pitch, const double yaw) {
-		return quaternion_from_rpy(Eigen::Vector3d(roll, pitch, yaw));
-	}
-
-	/**
-	 * @brief Convert quaternion to euler angles
-	 *
-	 * Reverse operation to @a quaternion_from_rpy()
-	 */
-	static Eigen::Vector3d quaternion_to_rpy(const Eigen::Quaterniond &q);
-
-	/**
-	 * @brief Convert quaternion to euler angles
-	 */
-	static inline void quaternion_to_rpy(const Eigen::Quaterniond &q, double &roll, double &pitch, double &yaw) {
-		const auto rpy = quaternion_to_rpy(q);
-		roll = rpy.x();
-		pitch = rpy.y();
-		yaw = rpy.z();
-	}
-
-	/**
-	 * @brief Get Yaw angle from quaternion
-	 *
-	 * Replacement function for @a tf::getYaw()
-	 */
-	static double quaternion_get_yaw(const Eigen::Quaterniond &q);
-
-	/**
-	 * @brief Store Quaternion to MAVLink float[4] format
-	 *
-	 * MAVLink uses wxyz order, wile Eigen::Quaterniond uses xyzw internal order,
-	 * so it can't be stored to array using Eigen::Map.
-	 */
-	static inline void quaternion_to_mavlink(const Eigen::Quaterniond &q, float qmsg[4]) {
-		qmsg[0] = q.w();
-		qmsg[1] = q.x();
-		qmsg[2] = q.y();
-		qmsg[3] = q.z();
-	}
-
-	/**
-	 * @brief Transform frame between ROS and FCU. (Vector3d)
-	 *
-	 * General function. Please use specialized enu-ned and ned-enu variants.
-	 */
-	static Eigen::Vector3d transform_frame(const Eigen::Vector3d &vec);
-
-	/**
-	 * @brief Transform frame between ROS and FCU. (Quaterniond)
-	 *
-	 * General function. Please use specialized enu-ned and ned-enu variants.
-	 */
-	static Eigen::Quaterniond transform_frame(const Eigen::Quaterniond &q);
-
-	/**
-	 * @brief Transform frame between ROS and FCU. (Covariance3d)
-	 *
-	 * General function. Please use specialized enu-ned and ned-enu variants.
-	 */
-	static Covariance3d transform_frame(const Covariance3d &cov);
-
-	// XXX TODO implement that function
-	static Covariance6d transform_frame(const Covariance6d &cov);
-
-	/**
-	 * @brief Transform from FCU to ROS frame.
-	 */
-	template<class T>
-	static inline T transform_frame_ned_enu(const T &in) {
-		return transform_frame(in);
-	}
-
-	/**
-	 * @brief Transform from ROS to FCU frame.
-	 */
-	template<class T>
-	static inline T transform_frame_enu_ned(const T &in) {
-		return transform_frame(in);
-	}
-
 private:
 	std::recursive_mutex mutex;
 
 	std::atomic<uint8_t> type;
 	std::atomic<uint8_t> autopilot;
+	std::atomic<uint8_t> base_mode;
 
 	uint8_t target_system;
 	uint8_t target_component;
 
 	std::atomic<bool> connected;
+	std::vector<ConnectionCb> connection_cb_vec;
 
 	sensor_msgs::Imu::Ptr imu_data;
 
@@ -451,8 +342,9 @@ private:
 	int gps_satellites_visible;
 
 	std::atomic<uint64_t> time_offset;
+	timesync_mode tsync_mode;
 
 	std::atomic<bool> fcu_caps_known;
 	std::atomic<uint64_t> fcu_capabilities;
 };
-};	// namespace mavros
+}	// namespace mavros

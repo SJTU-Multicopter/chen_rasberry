@@ -1,67 +1,66 @@
-# thanks to jsk-ros-pkg
+# Based on https://github.com/felixduvallet/ros-travis-integration
+#
 # vim:set ts=2 sw=2 et:
-language: cpp
+dist: trusty
+sudo: required
+language: generic
 compiler:
   - gcc
-  #- clang
+cache:
+  - apt
+
 env:
   global:
-    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-    #   via the "travis encrypt" command using the project repo's public key
-    - secure: "ieyA/jKHN1rVAQ8qFvXx6wdcUozFR5QBxUpQuEcItl4yv0bPnRp0xO9X/BhNFt6V85L8jEw9XNz4uHTUeAtghZZxpKCQ8de1NP49d7boyCTLQx/WsJ/bSPubAZOcnvbi9SoOTyymM94jdA1k46ndznI1ZZ713uSrPdIcg6o8Q9A="
-    - ROS_DISTRO=hydro # wait until travis will update to 14.04
+    #- ROS_DISTRO=jade
+    - ROS_CI_DESKTOP="$(lsb_release -cs)"
+    - CI_SOURCE_PATH=$(pwd)
+    - ROSINSTALL_FILE=$CI_SOURCE_PATH/dependencies.rosinstall
+    - ROS_PARALLEL_JOBS='-j8 -l6'
+
   matrix:
-    - MAVLINK_DIALECT=common
-    - MAVLINK_DIALECT=pixhawk
+    - ROS_DISTRO=indigo
+    - ROS_DISTRO=jade
 
 before_install:
-  - export CI_SOURCE_PATH=$(pwd)
-  - export REPOSITORY_NAME=${PWD##*/}
-  - echo "Testing branch $TRAVIS_BRANCH of $REPOSITORY_NAME"
-    #- sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu precise main" > /etc/apt/sources.list.d/ros-latest.list'
-  - sudo sh -c 'echo "deb http://packages.ros.org/ros-shadow-fixed/ubuntu precise main" > /etc/apt/sources.list.d/ros-latest.list'
+  - sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main\" > /etc/apt/sources.list.d/ros-latest.list"
+  #- sudo sh -c "echo \"deb http://packages.ros.org/ros-shadow-fixed/ubuntu $ROS_CI_DESKTOP main\" > /etc/apt/sources.list.d/ros-latest.list"
   - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
   - sudo apt-get update -qq
-  - sudo apt-get install -qq -y python-catkin-pkg python-rosdep python-wstool ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-ros python-rosinstall
-    # Setup rosdep
+  - sudo apt-get install -qq -y python-catkin-pkg python-rosdep python-wstool ros-$ROS_DISTRO-catkin python-catkin-tools
+  - source /opt/ros/$ROS_DISTRO/setup.bash
+  # Prepare rosdep
   - sudo rosdep init
   - rosdep update
 
 install:
-  # Create workspace
-  - mkdir -p ~/ros/ws_$REPOSITORY_NAME/src
-  - cd ~/ros/ws_$REPOSITORY_NAME/src
-  - wstool init .
-  - ln -s $CI_SOURCE_PATH . # Link the repo we are testing to the new workspace
-  - cd ../
-  # Install dependencies for source repos
-  - rosdep install -r -n --from-paths src --ignore-src --rosdistro $ROS_DISTRO -y
+  # Create catkin workspace
+  - mkdir -p ~/catkin_ws
+  - cd ~/catkin_ws
+  - catkin config --init --mkdirs
+  # Pull source depends
+  - cd src
+  - wstool init
+  - if [[ -f $ROSINSTALL_FILE ]]; then wstool merge $ROSINSTALL_FILE; fi
+  - wstool up
+  # Link the repo we are testing to the new workspace
+  - ln -s $CI_SOURCE_PATH .
+  # Install dependencies using rosdep
+  - cd ~/catkin_ws
+  - rosdep install -q -y --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 
 before_script:
   - source /opt/ros/$ROS_DISTRO/setup.bash
-  - rospack profile
+
 script:
-  - cd ~/ros/ws_$REPOSITORY_NAME
-  - catkin_make -j4 -DMAVLINK_DIALECT=$MAVLINK_DIALECT
-  - catkin_make install
-  - rm -fr devel src build; source install/setup.bash
+  - cd ~/catkin_ws
+  - catkin config --install
+  - catkin build --no-status --summary
+  - source devel/setup.bash
+  - catkin run_tests --no-status -p1 -i --summary
+  #- catkin_test_results --all ~/catkin_ws/build
 
 after_failure:
-  - if [ -e ./build/Testing/Temporary/LastTest.log ]; then cat ./build/Testing/Temporary/LastTest.log; fi
-  - find ${HOME}/.ros/test_results -type f -exec echo "== {} ==" \; -exec cat {} \;
-  - for file in ${HOME}/.ros/log/rostest-*; do echo "=== $file ==="; cat $file; done
-
-addons:
-  coverity_scan:
-    project:
-      name: "mavlink/mavros"
-      description: "Build submitted via Travis CI"
-    notification_email: vooon341@gmail.com
-    build_command_prepend: cd ~/ros/ws_$REPOSITORY_NAME/src/mavros &&
-      ln -s /opt/ros/$ROS_DISTRO/share/catkin/cmake/toplevel.cmake CMakeLists.txt &&
-      cmake .
-    build_command: make -j4
-    branch_pattern: coverity_scan
+  - find ~/catkin_ws/build -path '*/test_results/*' -type f -exec echo "==== {} ====" \; -exec cat {} \;
 
 notifications:
   webhooks:

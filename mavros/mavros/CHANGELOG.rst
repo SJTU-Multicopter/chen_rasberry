@@ -2,6 +2,329 @@
 Changelog for package mavros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.18.7 (2017-02-24)
+-------------------
+* readme: Add serial-hwfc:// proto
+* trigger interface : rename to cycle_time to be consistent with PX4
+* Contributors: Kabir Mohammed, Vladimir Ermakov
+
+0.18.6 (2017-02-07)
+-------------------
+* lib `#626 <https://github.com/mavlink/mavros/issues/626>`_: Porting of PR `#650 <https://github.com/mavlink/mavros/issues/650>`_ - Fix OSX pthread set name.
+* uas fix `#639 <https://github.com/mavlink/mavros/issues/639>`_: Remove Boost::signals2 from UAS
+* Plugins: system_status change status field to system_status
+  Add comment to State.msg for system_status enum
+* Plugins: add system_status to state message
+* Contributors: Fadri Furrer, Pierre Kancir, Vladimir Ermakov
+
+0.18.5 (2016-12-12)
+-------------------
+* lib: update ArduPilot modes
+* Contributors: Randy Mackay
+
+0.18.4 (2016-11-11)
+-------------------
+* lib: Add ArduSub modes
+* readme: Fix mavlink rosinstall_generator call
+* mavros: README.md: its -> it's
+  Here "it's" is a short form for "it is".
+* add hil_actuator_controls mavlink message
+* lib: Make cog.py scrips compatioble with Py3
+* plugin:sys_status: Add logging health report
+* Update README for all packages
+* Update README.md
+  Fix instructions: Only the Kinetic distro actually works for MAVLink 2.0
+* Contributors: Beat Küng, Georgii Staroselskii, Lorenz Meier, Vladimir Ermakov
+
+0.18.3 (2016-07-07)
+-------------------
+* plugin:param: Use mavlink::set_string() helper
+* Update README.md
+* Update README.md
+  Fix very confusing instructions mixing steps.
+* Update README.md
+* Update README.md
+* python `#569 <https://github.com/mavlink/mavros/issues/569>`_: convert_to_rosmsg() support for 2.0. NO SIGNING.
+* python `#569 <https://github.com/mavlink/mavros/issues/569>`_: Update mavlink.convert_to_bytes()
+* Contributors: Lorenz Meier, Vladimir Ermakov
+
+0.18.2 (2016-06-30)
+-------------------
+* plugin:sys_status: Fix STATUSTEXT log prefix
+* Contributors: Vladimir Ermakov
+
+0.18.1 (2016-06-24)
+-------------------
+* lib: Fix base mode flag check
+* plugins: Move pluginlib macros.h to tail
+* plugin:param fix `#559 <https://github.com/mavlink/mavros/issues/559>`_: Ignore PX4 _HASH_CHECK param
+* Contributors: Vladimir Ermakov
+
+0.18.0 (2016-06-23)
+-------------------
+* lib `#439 <https://github.com/mavlink/mavros/issues/439>`_: MAV_CMD to_string is not required.
+* plugin:sys_status `#458 <https://github.com/mavlink/mavros/issues/458>`_: Hanlde BATTERY_STATUS (PX4)
+* plugin:sys_status fix `#458 <https://github.com/mavlink/mavros/issues/458>`_: Use sensor_msgs/BatteryState message.
+  Minimal data, for all other need to handle BATTERY_STATUS.
+* plugin:command fix `#561 <https://github.com/mavlink/mavros/issues/561>`_: PX4 now sends COMMAND_ACK.
+  And like APM do not check confirmation field. :)
+* readme `#544 <https://github.com/mavlink/mavros/issues/544>`_: add udp-b://@ URL
+* plugin:hil_controls: Update plugin API
+* Merge branch 'feature/hil_controls_plugin' of https://github.com/pvechersky/mavros into pvechersky-feature/hil_controls_plugin
+  * 'feature/hil_controls_plugin' of https://github.com/pvechersky/mavros:
+  Adding anchor to the HIL_CONTROLS message reference link
+  Ran uncrustify on hil_controls plugin
+  Utilizing synchronise_stamp and adding reference to MAVLINK msg documentation
+  Added a plugin that publishes HIL_CONTROLS as ROS messages
+* node: fix subscription message type checks
+* plugin: use mavlink::to_string() for std::array<char, N>
+* readme: update CI, no more MAVLINK_DIALECT
+* plugin:waypoint: Fix target id's on MISSION_ITEM
+* node: Add ~fcu_protocol parameter
+* Ran uncrustify on hil_controls plugin
+* Utilizing synchronise_stamp and adding reference to MAVLINK msg documentation
+* node: set gcs_url on internal GCS bridge diag hardware Id
+* plugins: Use UAS::msg_set_target()
+* Added a plugin that publishes HIL_CONTROLS as ROS messages
+* lib: PX4 add AUTO.FOLLOW_TARGET
+* mavros: Update tests
+* extras: Update UAS
+* UAS: Update plugins for FTF module
+* UAS: move enum stringify functions
+* lib: Generate MAV_SENSOR_ORIENTATION
+* UAS: move MAV_SENSOR_ORIENTATION out
+* UAS: Move transformation utilities to ftf module
+* plugin:rc_io: Fix log printf-format warning
+* make GCC 4.8 happy. (travis)
+* gcs_bridge: done
+* param:ftp: Update API
+* plugin:param: Works. Tested on APM
+* plugin:param: Update, almost work
+* plugin:waypoint: Fix Item - ROS binding
+* Message type mismatch code do not work
+* plugin:waypoint: Update API
+* plugin:sys_time: Update API
+* plugin:sys_status: Update API
+* plugin:setpoint_raw: Update API
+* plugin:setpoint_attitude: Update API
+* plugin:setpoint_accel: Update API
+* plugin:setpoint_velocity: Update API
+* plugin:setpoint_position: Update API
+* plugin:vfr_hud: Update API
+* plugin:safety_area: Update API
+* plugin:rc_io: Update API
+* plugin:manual_control: Update API, fix uas init
+* plugin:local_position: Update API
+* plugin:imu_pub: Update API
+* plugin:global_position: Update API
+* mavros: make_handle() this shouldn't be const
+* plugin:common: Update API
+* plugin:altitude: uncrustify
+* plugins: Rutine sed + fix misprint
+* plugin:altitude: Update API
+* plugins: Automatic replacement of routine API changes (sed)
+* plugin:actuator_control: Update API
+* plugin:3dr_radio: Update API
+* node: Update plugin loading and message routing
+* node: type_info -> SIGSEGV
+* node: prepare new plugin loading
+* node: Rename plugib base class - API incompatible to old class
+* labmavconn: finding sigsegv
+* Contributors: Pavel, Vladimir Ermakov
+
+0.17.3 (2016-05-20)
+-------------------
+* libmavconn `#543 <https://github.com/mavlink/mavros/issues/543>`_: support build with mavlink 2.0 capable mavgen
+* node: Remove warning about MAVLINK_VERSION redefine
+* Fix bug with orientation in setpoint_raw plugin
+  Fixes a bug where the ned_desired_orientation was not actually passed into set_attitude_target. Instead, the desired_orientation (wrong frame) was passed.
+* Contributors: Justin Thomas, Vladimir Ermakov
+
+0.17.2 (2016-04-29)
+-------------------
+* Update README.md
+* Update README.md
+  Updated / completed examples.
+* Update README.md
+* Fix for kinetic std::isnan.
+* Contributors: James Goppert, Lorenz Meier
+
+0.17.1 (2016-03-28)
+-------------------
+* lib: Add QLAND mode of APM:Plane
+  https://github.com/mavlink/mavlink/commit/a0ed95c3a7d97a8f8d86ce3f95c4bf269f439c46
+* Update contributing guide
+  We forgot to mention uncrustify commit.
+* Treat submarine vehicles like copter vehicles
+* Contributors: Josh Villbrandt, Vladimir Ermakov
+
+0.17.0 (2016-02-09)
+-------------------
+* update README
+* rebased with master
+* Fixed ROS_BREAK
+* Updates for ROS_BREAK and code style
+* Nitpicks and uncrustify
+* Updated frame transformations and added odom publisher to local position plugin
+* Contributors: Eddy, Vladimir Ermakov, francois
+
+0.16.6 (2016-02-04)
+-------------------
+* node fix `#494 <https://github.com/mavlink/mavros/issues/494>`_: Report FCU firmware type in rosonsole log
+* scripts fix `#478 <https://github.com/mavlink/mavros/issues/478>`_: Remove guided_enable garbage.
+  I'm missed this when do `#407 <https://github.com/mavlink/mavros/issues/407>`_.
+* Contributors: Vladimir Ermakov
+
+0.16.5 (2016-01-11)
+-------------------
+* scripts: mavwp `#465 <https://github.com/mavlink/mavros/issues/465>`_: Remove WaypointGOTO from scrips and python library
+* node: Report mavlink package version
+* lib: Add APM:Plane QuadPlane modes.
+  Sync with: https://github.com/mavlink/mavlink/commit/1fc4aef08a54130f297943c246f95b8c7e37b1bf
+* readme: pixhawk dialect removed.
+* Contributors: Vladimir Ermakov
+
+0.16.4 (2015-12-14)
+-------------------
+* scripts: checkid: be always verbose, add --follow
+* scripts: fix copyright indent
+* scripts: mavcmd: Fix bug: param7 not passed to service call!
+* scripts `#382 <https://github.com/mavlink/mavros/issues/382>`_: Add ID checker script.
+  It is not complete, but i hope it helps in current state.
+* scripts: mavcmd: Add support for broadcast requests
+* event_launcher: fix bug: Trigger service server is not saved in Launcher
+  Also fixes: environment variables may contain ~ (user dir) in expansion.
+* using timestamp from mavlink message
+* Update mavlink message documentation links
+* lib: update MAV_TYPE stringify
+* lib: Add RATTITUDE PX4 mode
+* remove "altitude\_" prefix from members
+* updated copyright
+* implemented altitude plugin
+* Contributors: Andreas Antener, Vladimir Ermakov
+
+0.16.3 (2015-11-19)
+-------------------
+* use safe methods to get imu data in local_position plugin
+* Contributors: Andreas Antener
+
+0.16.2 (2015-11-17)
+-------------------
+* transform yaw and yaw rate from enu to ned
+* Contributors: Andreas Antener
+
+0.16.1 (2015-11-13)
+-------------------
+* python: fix import error of goto service
+* don't warn anymore about px4 not supporting rc_io
+* Contributors: Andreas Antener, Vladimir Ermakov
+
+0.16.0 (2015-11-09)
+-------------------
+* lib: Update ArduCopter mode list
+* plugin: sys_status `#423 <https://github.com/mavlink/mavros/issues/423>`_: set_mode set arming and HIL flags based on previous state
+* lib `#423 <https://github.com/mavlink/mavros/issues/423>`_: Save base_mode in UAS.
+* Finalized local position topic names
+* readme: add link to catkin-tools docs
+* readme `#409 <https://github.com/mavlink/mavros/issues/409>`_: merge mavlink and mavros installation instruction
+* Fixed redundant rotation of IMU data and redundant orientation data
+* plugin: setpoint_raw fix `#418 <https://github.com/mavlink/mavros/issues/418>`_: add attitude raw setpoint
+  Related `#402 <https://github.com/mavlink/mavros/issues/402>`_.
+* Added velocity output of FCU's local position estimate to ROS node
+* plugin: sys_status fix `#417 <https://github.com/mavlink/mavros/issues/417>`_: remove APM statustext quirk
+* plugin: waypoint fix `#414 <https://github.com/mavlink/mavros/issues/414>`_: remove GOTO service.
+  It is replaced with more standard global setpoint messages.
+* plugin: setpoint_raw fix `#415 <https://github.com/mavlink/mavros/issues/415>`_: add global position target support
+  Related to `#402 <https://github.com/mavlink/mavros/issues/402>`_.
+* plugin: command fix `#407 <https://github.com/mavlink/mavros/issues/407>`_: remove guided_enable sevice
+* plugin: setpoint_raw `#402 <https://github.com/mavlink/mavros/issues/402>`_: implement loopback.
+* plugin: setpoint_raw `#402 <https://github.com/mavlink/mavros/issues/402>`_: Initial import.
+* readme fix `#410 <https://github.com/mavlink/mavros/issues/410>`_: use only catkin tool
+* readme: add defaults for URL
+* pass new extended state to ros
+* python: add util to convert pymavlink message to Mavlink.msg
+* python: convert input to bytearray
+* python: add payload convertion util
+* gcs_bridge `#394 <https://github.com/mavlink/mavros/issues/394>`_: enable both UDPROS and TCPROS transports
+* EL: add try-except on handlers
+* event_launcher: show logfile path
+* event_launcher `#386 <https://github.com/mavlink/mavros/issues/386>`_: expand shell vars for logfile
+* Mavros library depends on mavros_msgs headers
+  Adding this dependency makes sure that mavros_msgs message headers are
+  generated before the mavros library is built, since it needs those
+  headers.
+* Contributors: Andreas Antener, Eddy, Jon Binney, Vladimir Ermakov
+
+0.15.0 (2015-09-17)
+-------------------
+* lib: fix timesync uninit bug.
+  Uninitialized variable caused wrong timestamps with APM.
+* python `#286 <https://github.com/mavlink/mavros/issues/286>`_: use checksum - save ticks
+* script `#385 <https://github.com/mavlink/mavros/issues/385>`_: output to log-file
+* script `#385 <https://github.com/mavlink/mavros/issues/385>`_: remove RosrunHandler and RoslaunchHandler
+* script `#385 <https://github.com/mavlink/mavros/issues/385>`_: attempt to implement rosrun fails.
+  ROSLaunch class wants all node operations from main thread.
+  That is not possible.
+* script `#385 <https://github.com/mavlink/mavros/issues/385>`_: fix shell-killer, but logging are broken and removed
+* script `#385 <https://github.com/mavlink/mavros/issues/385>`_: shell-launcher now works!
+* script `#385 <https://github.com/mavlink/mavros/issues/385>`_: add example configuration
+* script `#385 <https://github.com/mavlink/mavros/issues/385>`_: shell handler done. next - rosparam handling
+* script `#385 <https://github.com/mavlink/mavros/issues/385>`_: starting work on simple shell launcher
+* scripts: starting event_launcher
+* python: Remove unneded slice operation. Fix copyright year.
+  `list[:len(list)]` is equal to `list`, but creates new list with data
+  from that slice.
+* updated mavlink byte buffer conversion
+* plugin: manual_control: Use shared pointer message
+  Fix alphabetic order of msgs.
+* python: add helper for converting mavros_msgs/Mavlink to pymavlink
+* Add MANUAL_CONTROL handling with new plugin
+* Contributors: Andreas Antener, Vladimir Ermakov, v01d
+
+0.14.2 (2015-08-20)
+-------------------
+
+0.14.1 (2015-08-19)
+-------------------
+* package: Fix depend on rosconsole-bridge
+* Removed <remap\>
+* Contributors: Vladimir Ermakov, devbharat
+
+0.14.0 (2015-08-17)
+-------------------
+* python: call of mavros.set_namespace() is required.
+* scripts: mavftp fix `#357 <https://github.com/mavlink/mavros/issues/357>`_: add verify command
+* scripts: mavftp `#357 <https://github.com/mavlink/mavros/issues/357>`_: progressbar on download operation
+* scripts: mavftp `#357 <https://github.com/mavlink/mavros/issues/357>`_: progress bar for upload operation.
+* scripts: mavftp: New command `cd`.
+  All path arguments now may handle relative paths.
+* readme: fix frame tansform section
+* mavros: readme: update info on frame conversions
+* mavros: readme: update contribution steps
+* node: Replace deprecated copy functions.
+  Also allow mavlink to & from topics to be namespaced.
+* extras: scripts: use API from mavros module
+* scripts: fix for new message location
+* python: update mavros lib to new message location
+* package: remove not exist dependency
+* plugin: waypoint: Fix message include
+* plugin: vfr_hud: Fix message include
+* plugin: rc_io: Fix message include
+* plugin: param: Fix message include
+* plugin: ftp: Fix message include
+* plugin: sys_status: Fix message include
+* plugin: command: Fix message include
+* plugin: 3dr_radio: Fix message include
+* plugin: actuator_control: Fix message include.
+* msgs: update copyright year
+* msgs: deprecate mavros::Mavlink and copy utils.
+* msgs: change description, make catkin lint happy
+* msgs `#354 <https://github.com/mavlink/mavros/issues/354>`_: move all messages to mavros_msgs package.
+* Minor typo fix.
+* node: increase diag timer to 2 Hz
+* node: move diagnostic to AsyncSpinner threads.
+* Contributors: TSC21, Tony Baltovski, Vladimir Ermakov
+
 0.13.1 (2015-08-05)
 -------------------
 * lib `#358 <https://github.com/mavlink/mavros/issues/358>`_: cleanup.

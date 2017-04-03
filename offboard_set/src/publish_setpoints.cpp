@@ -1,10 +1,10 @@
 #include "ros/ros.h"  
-#include "mavros_extras/PositionSetpoint.h"
+#include "../../../devel/include/mavros_msgs/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
 
 geometry_msgs::PoseStamped msg;
 
-void chatterCallback_receive_setpoint_local(const mavros_extras::PositionSetpoint &setpoint);
+void chatterCallback_receive_setpoint_local(const mavros_msgs::PositionSetpoint &setpoint);
 
 int main(int argc, char **argv)  
 {  
@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 	return 0;  
 }  
 
-void chatterCallback_receive_setpoint_local(const mavros_extras::PositionSetpoint &setpoint)
+void chatterCallback_receive_setpoint_local(const mavros_msgs::PositionSetpoint &setpoint)
 {
 	msg.header.stamp = ros::Time::now();
 	msg.pose.position.x = setpoint.px;

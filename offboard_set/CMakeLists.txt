@@ -31,8 +31,6 @@ target_link_libraries(process_setpoints ${catkin_LIBRARIES})
 add_executable(publish_setpoints src/publish_setpoints.cpp)  
 target_link_libraries(publish_setpoints ${catkin_LIBRARIES})   
 
-add_executable(fly_direction src/fly_direction.cpp)  
-target_link_libraries(fly_direction ${catkin_LIBRARIES})
 #add_executable(setpoints_publisher src/setpoints_publisher.cpp)  
 #target_link_libraries(setpoints_publisher ${catkin_LIBRARIES})  
 #add_dependencies(setpoints_publisher beginner_tutorials_generate_messages_cpp)

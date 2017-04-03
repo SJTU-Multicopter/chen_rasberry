@@ -1,22 +1,22 @@
 #include "ros/ros.h"  
-#include "mavros_extras/OffboardRoutePoints.h"
-#include "mavros_extras/OffboardRoutePointsConfirm.h"
-#include "mavros_extras/PositionSetpoint.h"
+#include "../../../devel/include/mavros_msgs/OffboardRoutePoints.h"
+#include "../../../devel/include/mavros_msgs/OffboardRoutePointsConfirm.h"
+#include "../../../devel/include/mavros_msgs/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
-#include "mavros/State.h"
+#include "../../../devel/include/mavros_msgs/State.h"
 #include "std_msgs/Float32.h"
 #include <math.h>
 #define CLOSE_DIST 0.6  //m
 #define Pi 3.14159265
 
-void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg);
+void chatterCallback_route_points(const mavros_msgs::OffboardRoutePoints &msg);
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
-void chatterCallback_mode(const mavros::State &msg);
+void chatterCallback_mode(const mavros_msgs::State &msg);
 void chatterCallback_standard_height(const std_msgs::Float32 &msg);
 
-mavros_extras::PositionSetpoint setpoint;//(px,py,ph,yaw)
-mavros_extras::PositionSetpoint stop_setpoint;//(px,py,ph,yaw)
-mavros_extras::OffboardRoutePointsConfirm route_point_confirm;
+mavros_msgs::PositionSetpoint setpoint;//(px,py,ph,yaw)
+mavros_msgs::PositionSetpoint stop_setpoint;//(px,py,ph,yaw)
+mavros_msgs::OffboardRoutePointsConfirm route_point_confirm;
 
 bool near_bool(float x, float y);
 
@@ -47,8 +47,8 @@ int main(int argc, char **argv)
 
 	ros::NodeHandle nh;  
 	
-	ros::Publisher routepoint_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/setpoints_raw", 2); 
-	ros::Publisher routepointconfirm_pub = nh.advertise<mavros_extras::OffboardRoutePointsConfirm>("offboard_route_points_confirm", 2); 
+        ros::Publisher routepoint_pub = nh.advertise<mavros_msgs::PositionSetpoint>("offboard/setpoints_raw", 2);
+        ros::Publisher routepointconfirm_pub = nh.advertise<mavros_msgs::OffboardRoutePointsConfirm>("offboard_route_points_confirm", 2);
 
 	ros::Subscriber setpoint_sub = nh.subscribe("/mavros/offboard_route_points_receiver/offboard_route_points_receiver", 5, chatterCallback_route_points);
 	ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 	return 0;  
 }  
 
-void chatterCallback_route_points(const mavros_extras::OffboardRoutePoints &msg)
+void chatterCallback_route_points(const mavros_msgs::OffboardRoutePoints &msg)
 {
 	total_num = msg.total;
 	msg_seq = msg.seq;
@@ -168,7 +168,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 }
 
 
-void chatterCallback_mode(const mavros::State &msg)//模式
+void chatterCallback_mode(const mavros_msgs::State &msg)//模式
 {
 	if(msg.mode=="OFFBOARD") offboard_ready=true;
 	else offboard_ready=false;

@@ -5,10 +5,6 @@ plugin_blacklist:
 - image_pub
 - vibration
 - distance_sensor
-- setpoint_accel
-- setpoint_attitude
-- setpoint_velocity
-#- setpoint_position
 
 plugin_whitelist: []
 #- 'sys_*'

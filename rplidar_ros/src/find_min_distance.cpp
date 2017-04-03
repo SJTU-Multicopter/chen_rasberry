@@ -1,6 +1,6 @@
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
-#include "mavros_extras/LaserDistance.h"
+#include "../../../devel/include/mavros_msgs/LaserDistance.h"
 #include <math.h>
 
 class ScanProcess
@@ -11,7 +11,7 @@ private:
   ros::NodeHandle n;
   ros::Subscriber scan_sub;
   ros::Publisher pub;
-  mavros_extras::LaserDistance pos;
+  mavros_msgs::LaserDistance pos;
   
   void scanCallback(const sensor_msgs::LaserScan laser);
 };
@@ -19,7 +19,7 @@ private:
 ScanProcess::ScanProcess()
 {
   scan_sub = n.subscribe("/scan_horizontal", 1, &ScanProcess::scanCallback, this);
-  pub = n.advertise<mavros_extras::LaserDistance>("/laser_send", 5);
+  pub = n.advertise<mavros_msgs::LaserDistance>("/laser_send", 5);
 }
 
 void ScanProcess::scanCallback(const sensor_msgs::LaserScan laser)

@@ -1,28 +1,28 @@
 #include "ros/ros.h"  
 #include <math.h>
-#include "mavros_extras/PositionSetpoint.h"
+#include "../../../devel/include/mavros_msgs/PositionSetpoint.h"
 #include "geometry_msgs/PoseStamped.h"
-#include "mavros/State.h"
-#include "mavros_extras/ExtraFunctionReceiver.h"
-#include "mavros_extras/LaserDistance.h"
-#include "mavros_extras/FlyDirection.h"
-#include "Eigen/Dense"
+#include "../../../devel/include/mavros_msgs/State.h"
+#include "../../../devel/include/mavros_msgs/ExtraFunctionReceiver.h"
+#include "../../../devel/include/mavros_msgs/LaserDistance.h"
+#include "../../../devel/include/mavros_msgs/FlyDirection.h"
+#include "../../../devel/include/Eigen/Dense"
 #include "std_msgs/String.h"   //new
 #include "std_msgs/Float32.h"
 #include "geometry_msgs/Point32.h"
-#include "de_lidar/Lidar.h"
+#include "../../../devel/include/de_lidar/Lidar.h"
 #define Pi 3.141592653
 #define ERROR_LIMIT 0.2
 #define LOOP_RATE_PLAN 10
 using namespace Eigen;
 
 void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg);
-void chatterCallback_mode(const mavros::State &msg);
-void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg);
-void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg);
-void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg);  //add by CJ
+void chatterCallback_mode(const mavros_msgs::State &msg);
+void chatterCallback_receive_setpoint_raw(const mavros_msgs::PositionSetpoint &msg);
+void chatterCallback_extra_function(const mavros_msgs::ExtraFunctionReceiver &msg);
+void chatterCallback_obstacle(const mavros_msgs::LaserDistance &msg);  //add by CJ
 void chatterCallback_crop_distance(const de_lidar::Lidar &msg);  //add by CJ
-void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg);  //add by CJ
+void chatterCallback_fly_direction(const mavros_msgs::FlyDirection &msg);  //add by CJ
 void rotate(float yaw, const Vector3f& input, Vector3f& output);   //add by CJ
 void obstacle_avoid_trajectory_generation(const Vector3f& current_pos, const Vector3f& next_pos, Matrix<float, 4, 2> trajectory_matrix);
 
@@ -128,9 +128,9 @@ float MAX_pitch_deg = 20.0;
 float MAX_j = 2.5;
 float max_a = 0;
 
-mavros_extras::PositionSetpoint processed_setpoint;
+mavros_msgs::PositionSetpoint processed_setpoint;
 std_msgs::Float32 standard_height;
-mavros_extras::LaserDistance record_values;
+mavros_msgs::LaserDistance record_values;
 
 int main(int argc, char **argv)  
 {  
@@ -139,9 +139,9 @@ int main(int argc, char **argv)
 
 	ros::NodeHandle nh;  
 	
-	ros::Publisher offboard_pub = nh.advertise<mavros_extras::PositionSetpoint>("offboard/setpoints_local", 2);  
+        ros::Publisher offboard_pub = nh.advertise<mavros_msgs::PositionSetpoint>("offboard/setpoints_local", 2);
 	ros::Publisher standard_height_pub = nh.advertise<std_msgs::Float32>("offboard/standard_height", 2);
-	ros::Publisher record_paras_pub = nh.advertise<mavros_extras::LaserDistance>("offboard/record",2);
+        ros::Publisher record_paras_pub = nh.advertise<mavros_msgs::LaserDistance>("offboard/record",2);
 
 	ros::Subscriber setpoint_sub = nh.subscribe("/offboard/setpoints_raw", 2, chatterCallback_receive_setpoint_raw);
 	ros::Subscriber localposition_sub = nh.subscribe("/mavros/local_position/local", 2,chatterCallback_local_position);
@@ -370,7 +370,7 @@ int float_near(float a, float b, float dif)
 		return 0;
 	}
 }
-void chatterCallback_receive_setpoint_raw(const mavros_extras::PositionSetpoint &msg)
+void chatterCallback_receive_setpoint_raw(const mavros_msgs::PositionSetpoint &msg)
 {
 //add by CJ
 	if(auto_avoid_processing){
@@ -431,7 +431,7 @@ void chatterCallback_local_position(const geometry_msgs::PoseStamped &msg)
 	current_yaw = atan2(2*q1*q2 - 2*q0*q3, -2*q1*q1 - 2*q3*q3 + 1) + Pi;//North:0, West: Pi/2, south:Pi, East:3/2Pi
 //  ROS_INFO("current_yaw %f",current_yaw);
 }
-void chatterCallback_mode(const mavros::State &msg)
+void chatterCallback_mode(const mavros_msgs::State &msg)
 {
 	if(msg.mode=="OFFBOARD") 
 	{
@@ -728,7 +728,7 @@ float posPlan(float max_jerk, float max_acc, float t,
 	return pos;
 }
 
-void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &msg)
+void chatterCallback_extra_function(const mavros_msgs::ExtraFunctionReceiver &msg)
 {
 	if(msg.obs_avoid_enable != 0)  obstacle_avoid_enable = true;
 	else obstacle_avoid_enable = false;
@@ -743,7 +743,7 @@ void chatterCallback_extra_function(const mavros_extras::ExtraFunctionReceiver &
 }
 
 //Subscribe obstacle msg by CJ
-void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
+void chatterCallback_obstacle(const mavros_msgs::LaserDistance &msg)
 {
 	Vector3f direction;
 
@@ -786,14 +786,14 @@ void chatterCallback_obstacle(const mavros_extras::LaserDistance &msg)
 //Subscribe crop distance msg by CJ
 void chatterCallback_crop_distance(const de_lidar::Lidar &msg)
 {
-	if(msg.distance >= 1.0)
+        if(msg.distance.data >= 1.0)
 	{
 		obstacle_avoid_height_enable = true;
 	}else
 	{
 		obstacle_avoid_height_enable = false;
 	}
-	laser_height = msg.distance;
+        laser_height = msg.distance.data;
 	height_confidence1 = 1.0;
 	height_confidence2 = 1.0;
 
@@ -812,7 +812,7 @@ void chatterCallback_crop_distance(const de_lidar::Lidar &msg)
 }
 
 //Subscribe fly direction by CJ
-void chatterCallback_fly_direction(const mavros_extras::FlyDirection &msg)
+void chatterCallback_fly_direction(const mavros_msgs::FlyDirection &msg)
 {
 	fly_direction = msg.direction;
 }

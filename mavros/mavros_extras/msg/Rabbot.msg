@@ -1,9 +1,0 @@
-int16 pitch
-int16 roll
-int16 yaw
-int16 vala
-int16 valb 
-int16 valc
-int16 vald
-int16 vale
-int16 valf

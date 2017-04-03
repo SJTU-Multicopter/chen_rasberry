@@ -5,18 +5,29 @@ project(mavros_extras)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  image_transport
-  cv_bridge
   mavros
   roscpp
+  mavros_msgs
   sensor_msgs
   geometry_msgs
   std_msgs
   visualization_msgs
+  urdf
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
+
+find_package(Eigen3)
+if(NOT EIGEN3_FOUND)
+  # Fallback to cmake_modules
+  find_package(cmake_modules REQUIRED)
+  find_package(Eigen REQUIRED)
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN_INCLUDE_DIRS})
+  set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})
+endif()
+
 include(EnableCXX11)
 include(MavrosMavlink)
 
@@ -25,72 +36,6 @@ include(MavrosMavlink)
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 # catkin_python_setup()
 
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## To declare and build messages, services or actions from within this
-## package, follow these steps:
-## * Let MSG_DEP_SET be the set of packages whose message types you use in
-##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
-## * In the file package.xml:
-##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
-##   * If MSG_DEP_SET isn't empty the following dependencies might have been
-##     pulled in transitively but can be declared for certainty nonetheless:
-##     * add a build_depend tag for "message_generation"
-##     * add a run_depend tag for "message_runtime"
-## * In this file (CMakeLists.txt):
-##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * add "message_runtime" and every package in MSG_DEP_SET to
-##     catkin_package(CATKIN_DEPENDS ...)
-##   * uncomment the add_*_files sections below as needed
-##     and list every .msg/.srv/.action file to be processed
-##   * uncomment the generate_messages entry below
-##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
-
-## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  OpticalFlowRad.msg
-  Vibration.msg
-  CamIMUStamp.msg
-  SonarDistance.msg
-  LaserDistance.msg
-  RPLidar.msg
-  #FieldSize.msg
-  #FieldSizeConfirm.msg
-  OffboardRoutePoints.msg
-  OffboardRoutePointsConfirm.msg
-  Rabbot.msg
-  PumpController.msg
-  PumpStatus.msg
-  ExtraFunction.msg
-  ExtraFunctionReceiver.msg
-  PositionSetpoint.msg
-  FlyDirection.msg
-)
-
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
-
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  mavros
-  sensor_msgs
-)
 
 
 ###################################
@@ -104,49 +49,29 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-  LIBRARIES mavros_extras
-  CATKIN_DEPENDS image_transport mavros roscpp sensor_msgs
-  DEPENDS Boost mavlink
+#  LIBRARIES
+  CATKIN_DEPENDS mavros mavros_msgs roscpp sensor_msgs geometry_msgs
+  DEPENDS Boost
 )
 
 ###########
 ## Build ##
 ###########
 
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-# include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${mavlink_INCLUDE_DIRS}
 )
 
-## Declare a cpp library
 add_library(mavros_extras
   src/plugins/distance_sensor.cpp
   src/plugins/px4flow.cpp
-  src/plugins/image_pub.cpp
   src/plugins/mocap_pose_estimate.cpp
+  src/plugins/mocap_fake_gps.cpp
   src/plugins/vision_pose_estimate.cpp
   src/plugins/vision_speed_estimate.cpp
   src/plugins/vibration.cpp
   src/plugins/cam_imu_sync.cpp
-  src/plugins/sonar_distance.cpp
-  #src/plugins/sonar_receiver.cpp
-  src/plugins/laser_distance.cpp
-  #src/plugins/laser_receiver.cpp
-  src/plugins/pump_controller.cpp
-  src/plugins/pump_status.cpp
-  #src/plugins/offboard_route_points.cpp
-  src/plugins/offboard_route_points_receiver.cpp
-  src/plugins/offboard_route_points_confirm.cpp
-  #src/plugins/offboard_route_points_confirm_receiver.cpp
-  src/plugins/extra_function.cpp
-  src/plugins/extra_function_receiver.cpp
-  
-)
-add_dependencies(mavros_extras
-  mavros_extras_generate_messages_cpp
 )
 target_link_libraries(mavros_extras
   ${mavros_LIBRARIES}
@@ -154,18 +79,17 @@ target_link_libraries(mavros_extras
 )
 
 ## Declare a cpp executable
-add_executable(gcs_image_bridge
-  src/gcs_image_bridge.cpp
-)
-target_link_libraries(gcs_image_bridge
-  ${mavros_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
-
 add_executable(copter_visualization
   src/copter_visualization.cpp
 )
 target_link_libraries(copter_visualization
+  ${catkin_LIBRARIES}
+)
+
+add_executable(servo_state_publisher
+  src/servo_state_publisher.cpp
+)
+target_link_libraries(servo_state_publisher
   ${catkin_LIBRARIES}
 )
 
@@ -185,7 +109,7 @@ install(PROGRAMS
 )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS mavros_extras gcs_image_bridge copter_visualization
+install(TARGETS mavros_extras copter_visualization servo_state_publisher
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -195,7 +119,6 @@ install(TARGETS mavros_extras gcs_image_bridge copter_visualization
 # install(DIRECTORY include/${PROJECT_NAME}/
 #   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 #   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)

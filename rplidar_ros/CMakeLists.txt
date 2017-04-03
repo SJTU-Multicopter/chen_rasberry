@@ -22,6 +22,8 @@ generate_messages(
   std_msgs  # Or other packages containing msgs
 )
 
+include_directories(include ${catkin_INCLUDE_DIRS})
+
 include_directories(
   ${RPLIDAR_SDK_PATH}/include
   ${RPLIDAR_SDK_PATH}/src
